@@ -1,17 +1,22 @@
 import type { Request, Response, NextFunction } from "express";
-import { requireAuth, getAuth } from "@clerk/express";
+import { getAuth } from "@clerk/express";
 
 const clerkConfigured = Boolean(
   process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY
 );
 
-const enforce = requireAuth();
-
+// API-style auth gate: returns JSON 401 for unauthenticated requests.
+// (We deliberately avoid Clerk's requireAuth() because it 302-redirects
+// to a sign-in / dev-handshake URL, which is wrong for an API.)
 export function requireSession(req: Request, res: Response, next: NextFunction) {
   if (!clerkConfigured) {
     return res.status(503).json({ error: "auth_not_configured" });
   }
-  return enforce(req, res, next);
+  const auth = getAuth(req);
+  if (!auth.userId) {
+    return res.status(401).json({ error: "unauthenticated" });
+  }
+  return next();
 }
 
 export function getUserId(req: Request): string {
