@@ -1,0 +1,337 @@
+{
+  "version": "kingshot-char-v3",
+  "exportedAt": "2026-04-23T20:08:33.018Z",
+  "state": {
+    "name": "My Governor",
+    "maxGeneration": 6,
+    "bonusOverview": {
+      "squads": {
+        "ATK": 123,
+        "DEF": 125.3,
+        "Leth": 43,
+        "HP": 57
+      },
+      "Infantry": {
+        "ATK": 201.5,
+        "DEF": 206.2,
+        "Leth": 222,
+        "HP": 221.6
+      },
+      "Cavalry": {
+        "ATK": 176.3,
+        "DEF": 175.8,
+        "Leth": 196.3,
+        "HP": 187.9
+      },
+      "Archer": {
+        "ATK": 189.4,
+        "DEF": 178.9,
+        "Leth": 197.9,
+        "HP": 187.4
+      }
+    },
+    "govGearSlots": {
+      "helm": 15,
+      "accessory": 15,
+      "armor": 23,
+      "pants": 23,
+      "ring": 19,
+      "weapon": 17
+    },
+    "charmLevels": {
+      "Infantry": {
+        "helm": [
+          4,
+          4,
+          4
+        ],
+        "accessory": [
+          4,
+          4,
+          4
+        ],
+        "armor": [
+          5,
+          5,
+          5
+        ],
+        "pants": [
+          5,
+          5,
+          5
+        ],
+        "ring": [
+          4,
+          4,
+          4
+        ],
+        "weapon": [
+          4,
+          4,
+          4
+        ]
+      },
+      "Cavalry": {
+        "helm": [
+          4,
+          4,
+          4
+        ],
+        "accessory": [
+          4,
+          4,
+          4
+        ],
+        "armor": [
+          5,
+          5,
+          5
+        ],
+        "pants": [
+          5,
+          5,
+          5
+        ],
+        "ring": [
+          4,
+          4,
+          4
+        ],
+        "weapon": [
+          4,
+          4,
+          4
+        ]
+      },
+      "Archer": {
+        "helm": [
+          4,
+          4,
+          4
+        ],
+        "accessory": [
+          4,
+          4,
+          4
+        ],
+        "armor": [
+          5,
+          5,
+          5
+        ],
+        "pants": [
+          5,
+          5,
+          5
+        ],
+        "ring": [
+          4,
+          4,
+          4
+        ],
+        "weapon": [
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    "pets": {
+      "Infantry": {
+        "Leth": 21.22,
+        "HP": 20.88
+      },
+      "Cavalry": {
+        "Leth": 19.56,
+        "HP": 20.7
+      },
+      "Archer": {
+        "Leth": 21.15,
+        "HP": 20.19
+      },
+      "squads": {
+        "ATK": 41.8,
+        "DEF": 41.8
+      }
+    },
+    "troops": {
+      "Infantry": {
+        "composition": [
+          {
+            "count": 90000,
+            "tier": 11,
+            "tgLevel": 0
+          }
+        ]
+      },
+      "Cavalry": {
+        "composition": [
+          {
+            "count": 36000,
+            "tier": 11,
+            "tgLevel": 0
+          }
+        ]
+      },
+      "Archer": {
+        "composition": [
+          {
+            "count": 54000,
+            "tier": 11,
+            "tgLevel": 0
+          }
+        ]
+      }
+    },
+    "heroGear": {
+      "Infantry": {
+        "helm": {
+          "enh": 76,
+          "mast": 7
+        },
+        "gloves": {
+          "enh": 105,
+          "mast": 12
+        },
+        "chest": {
+          "enh": 120,
+          "mast": 12
+        },
+        "boots": {
+          "enh": 76,
+          "mast": 7
+        }
+      },
+      "Cavalry": {
+        "helm": {
+          "enh": 100,
+          "mast": 10
+        },
+        "gloves": {
+          "enh": 71,
+          "mast": 5
+        },
+        "chest": {
+          "enh": 73,
+          "mast": 6
+        },
+        "boots": {
+          "enh": 100,
+          "mast": 10
+        }
+      },
+      "Archer": {
+        "helm": {
+          "enh": 101,
+          "mast": 11
+        },
+        "gloves": {
+          "enh": 75,
+          "mast": 7
+        },
+        "chest": {
+          "enh": 76,
+          "mast": 7
+        },
+        "boots": {
+          "enh": 101,
+          "mast": 10
+        }
+      }
+    },
+    "heroRoster": {
+      "Helga": {
+        "level": 80,
+        "stars": 3.4,
+        "widgetLv": 1,
+        "skills": [
+          2,
+          3,
+          3
+        ]
+      },
+      "Amadeus": {
+        "level": 80,
+        "stars": 4.3,
+        "widgetLv": 10,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      },
+      "Zoe": {
+        "level": 80,
+        "stars": 4.5,
+        "widgetLv": 10,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      },
+      "Jabel": {
+        "level": 80,
+        "stars": 5,
+        "widgetLv": 3,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      },
+      "Hilde": {
+        "level": 80,
+        "stars": 5,
+        "widgetLv": 10,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      },
+      "Saul": {
+        "level": 80,
+        "stars": 5,
+        "widgetLv": 6,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      },
+      "Marlin": {
+        "level": 80,
+        "stars": 5,
+        "widgetLv": 10,
+        "skills": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    "attackRally": {
+      "selectedHeroes": [
+        "Amadeus",
+        "Hilde",
+        "Marlin"
+      ],
+      "joinerSlots": [
+        "Chenko",
+        "Chenko",
+        "Amane",
+        "Amane"
+      ],
+      "offenseWeight": 75
+    },
+    "garrisonLead": {
+      "selectedHeroes": [
+        "Zoe",
+        "Hilde",
+        "Saul"
+      ],
+      "offenseWeight": 25
+    }
+  }
+}

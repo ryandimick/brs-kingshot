@@ -1,0 +1,22 @@
+# Local dev — just Postgres in a container. Run the frontend (Vite) and API (tsx watch)
+# natively for fast HMR.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   # then in rally-lead-api: npm run dev
+#   # then in rally-lead-app: npm run dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rally_lead
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: rally_lead
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data_dev:/var/lib/postgresql/data
+
+volumes:
+  pg_data_dev:

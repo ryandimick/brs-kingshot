@@ -1,0 +1,19 @@
+# SITE_ADDRESS is set via the caddy container's env.
+# Production:  www.blackrosealliance.com, blackrosealliance.com  → auto-HTTPS via Let's Encrypt
+# Local test:  :80  → HTTP only on port 80
+
+{$SITE_ADDRESS:localhost} {
+    encode gzip
+
+    @api path /api/*
+    handle @api {
+        uri strip_prefix /api
+        reverse_proxy api:3001
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}

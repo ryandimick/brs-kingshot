@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id               String   @id @default(uuid())
+  clerkUserId      String   @map("clerk_user_id")
+  kingshotPlayerId String   @unique @map("kingshot_player_id")
+  name             String
+  characterSheet   Json     @map("character_sheet")
+  cycleAnchor      DateTime @map("cycle_anchor")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt       @map("updated_at")
+
+  @@index([clerkUserId])
+  @@map("profiles")
+}
