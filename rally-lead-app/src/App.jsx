@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useCharacterState } from "./hooks/useCharacterState";
 import { computeAttackBuffs, computeGarrisonBuffs } from "./engine/buffs";
 import { computeSkillMod, computeStatProducts, computeInvestments } from "./engine/combat";
 import { C, FONT_BODY } from "./theme";
 import { Header, TabBar, Footer } from "./components/Layout";
+import { SignInScreen } from "./components/SignInScreen";
 import { BonusOverviewTab } from "./components/BonusOverviewTab";
 import { GearTab } from "./components/GearTab";
 import { PetsTab } from "./components/PetsTab";
@@ -16,6 +18,19 @@ import { ScenarioPlannerTab } from "./components/ScenarioPlannerTab";
 import { CounterTab } from "./components/CounterTab";
 
 export default function App() {
+  return (
+    <>
+      <SignedOut>
+        <SignInScreen />
+      </SignedOut>
+      <SignedIn>
+        <AuthenticatedApp />
+      </SignedIn>
+    </>
+  );
+}
+
+function AuthenticatedApp() {
   const { cs, loaded, dirty, saving, save, update, numUp, updateRoster, removeRoster, exportState } = useCharacterState();
   const [tab, setTab] = useState("bonuses");
 

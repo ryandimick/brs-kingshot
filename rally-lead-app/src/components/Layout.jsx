@@ -1,3 +1,4 @@
+import { UserButton } from "@clerk/clerk-react";
 import { C, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../theme";
 
 const TABS = [
@@ -27,7 +28,7 @@ export function Header({ dirty, saving, onSave, onExport }) {
           Investment optimizer &middot; Attack &amp; Garrison planner
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button onClick={onExport} title="Download your saved stats as a JSON file" style={{
           fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: 700, letterSpacing: "1px",
           padding: "8px 16px", borderRadius: 4, border: `1px solid ${C.brd}`, cursor: "pointer",
@@ -43,6 +44,7 @@ export function Header({ dirty, saving, onSave, onExport }) {
         }}>
           {saving ? "SAVED \u2713" : dirty ? "SAVE" : "SAVED"}
         </button>
+        <UserButton afterSignOutUrl="/" />
       </div>
     </div>
   );
