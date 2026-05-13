@@ -33,11 +33,13 @@ const emptyBudget = {};
 function show(label, tierId, packId) {
   const pack = getPackById(packId);
   const tier = pack.tiers.find(t => t.id === tierId);
-  const bundle = resolvePackTier(cs, emptyBudget, tier);
+  const result = resolvePackTier(cs, emptyBudget, tier);
   console.log(`\n${label}`);
   console.log(`  ${pack.name} — ${tier.tierName} ($${tier.price})`);
   console.log(`  choice.kind: ${tier.choice?.kind}`);
-  console.log(`  routed bundle:`, bundle);
+  console.log(`  bundle:`, result.bundle);
+  console.log(`  extras:`, result.extras);
+  console.log(`  picks: `, JSON.stringify(result.picks));
 }
 
 console.log("Loaded packs:", getAllPacks().map(p => p.id).join(", "));
@@ -54,4 +56,6 @@ console.log("\n--- bottleneck test: budget already has 1000 forgehammers ---");
 const flushBudget = { forgehammers: 1000 };
 const arms = getPackById("custom_arms_set");
 const commonTier = arms.tiers.find(t => t.id === "common");
-console.log("  routed:", resolvePackTier(cs, flushBudget, commonTier));
+const routed = resolvePackTier(cs, flushBudget, commonTier);
+console.log("  bundle:", routed.bundle);
+console.log("  picks: ", JSON.stringify(routed.picks));
