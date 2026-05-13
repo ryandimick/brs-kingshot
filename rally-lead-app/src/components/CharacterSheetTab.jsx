@@ -162,43 +162,56 @@ function HeroGearColumn({ troop, cs, numUp }) {
 
   return (
     <Card title={`HERO GEAR — ${troop.toUpperCase()}`} accent={troopColor[troop]}>
-      {Object.entries(GEAR_PIECE_STAT).map(([pieceId, stat]) => {
-        const piece = gearSet[pieceId] || { enh: 0, mast: 0 };
-        return (
-          <div key={pieceId} style={{
-            background: C.bg, border: `1px solid ${C.brd}`, borderRadius: 4,
-            padding: "5px 8px", display: "flex", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 12 }}>{PIECE_ICONS[pieceId]}</span>
-            <span style={{ fontSize: 10, color: C.txD, width: 50 }}>
-              {PIECE_NAMES[pieceId]}
-            </span>
-            <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 8, color: C.txD }}>Enh</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+        {Object.entries(GEAR_PIECE_STAT).map(([pieceId, stat]) => {
+          const piece = gearSet[pieceId] || { enh: 0, mast: 0 };
+          const statColor = stat === "Leth" ? C.grn : C.blu;
+          return (
+            <div key={pieceId} style={{
+              position: "relative",
+              background: C.bg, border: `1px solid ${C.brd}`,
+              borderRadius: 4, padding: 6, minWidth: 0, minHeight: 92,
+            }}>
+              {/* Centered icon + name + stat label */}
+              <div style={{ textAlign: "center", marginTop: 14 }}>
+                <div style={{ fontSize: 18 }}>{PIECE_ICONS[pieceId]}</div>
+                <div style={{ fontSize: 9, color: C.txD, marginTop: 2 }}>
+                  {PIECE_NAMES[pieceId]}
+                </div>
+                <div style={{ fontSize: 8, color: statColor, fontWeight: 700, marginTop: 1, letterSpacing: "0.5px" }}>
+                  {stat.toUpperCase()}
+                </div>
+              </div>
+              {/* Enh — top-right corner */}
+              <div style={{ position: "absolute", top: 4, right: 4, textAlign: "center" }}>
+                <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>ENH</div>
                 <input
                   type="number" min={0} max={200}
                   value={piece.enh}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.enh`, e.target.value)}
-                  style={{ width: "100%", fontSize: 10, padding: "2px" }}
+                  style={{
+                    width: 38, fontSize: 10, padding: "1px 2px",
+                    textAlign: "center", fontFamily: FONT_MONO,
+                  }}
                 />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 8, color: C.txD }}>Mast</div>
+              {/* Mast — bottom-right corner */}
+              <div style={{ position: "absolute", bottom: 4, right: 4, textAlign: "center" }}>
+                <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>MAST</div>
                 <input
                   type="number" min={0} max={20}
                   value={piece.mast}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.mast`, e.target.value)}
-                  style={{ width: "100%", fontSize: 10, padding: "2px" }}
+                  style={{
+                    width: 38, fontSize: 10, padding: "1px 2px",
+                    textAlign: "center", fontFamily: FONT_MONO,
+                  }}
                 />
               </div>
             </div>
-            <span style={{ fontSize: 9, color: C.txD, width: 40, textAlign: "right" }}>
-              {stat}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
       <div style={{
         padding: "5px 8px", background: C.bg, borderRadius: 4,
         display: "flex", justifyContent: "space-around", fontFamily: FONT_MONO, fontSize: 10,
