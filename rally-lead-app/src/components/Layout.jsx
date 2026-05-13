@@ -1,5 +1,6 @@
 import { UserButton } from "@clerk/clerk-react";
 import { C, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../theme";
+import { ProfileSwitcher } from "./ProfileSwitcher";
 
 const TABS = [
   { id: "bonuses", l: "Bonus Overview" },
@@ -14,11 +15,15 @@ const TABS = [
   { id: "counter", l: "Counter Search" },
 ];
 
-export function Header({ dirty, saving, onSave, onExport }) {
+export function Header({
+  dirty, saving, saveError, onSave, onExport,
+  profiles, activeProfile, onSwitchProfile, onCreateNewProfile,
+}) {
   return (
     <div style={{
       background: C.s1, borderBottom: `1px solid ${C.brd}`,
       padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
+      gap: 16, flexWrap: "wrap",
     }}>
       <div>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 800, color: C.gold, letterSpacing: "1.5px" }}>
@@ -28,7 +33,16 @@ export function Header({ dirty, saving, onSave, onExport }) {
           Investment optimizer &middot; Attack &amp; Garrison planner
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {profiles && activeProfile && (
+          <ProfileSwitcher
+            profiles={profiles}
+            activeProfile={activeProfile}
+            onSwitch={onSwitchProfile}
+            onCreateNew={onCreateNewProfile}
+            dirty={dirty}
+          />
+        )}
         <button onClick={onExport} title="Download your saved stats as a JSON file" style={{
           fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: 700, letterSpacing: "1px",
           padding: "8px 16px", borderRadius: 4, border: `1px solid ${C.brd}`, cursor: "pointer",
@@ -36,13 +50,18 @@ export function Header({ dirty, saving, onSave, onExport }) {
         }}>
           EXPORT
         </button>
-        <button onClick={onSave} style={{
-          fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: 700, letterSpacing: "1px",
-          padding: "8px 16px", borderRadius: 4, border: "none", cursor: "pointer",
-          background: dirty ? C.gold : C.s2, color: dirty ? C.bg : C.txD,
-          transition: "all .2s",
-        }}>
-          {saving ? "SAVED \u2713" : dirty ? "SAVE" : "SAVED"}
+        <button
+          onClick={onSave}
+          title={saveError || undefined}
+          style={{
+            fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: 700, letterSpacing: "1px",
+            padding: "8px 16px", borderRadius: 4, border: "none", cursor: "pointer",
+            background: saveError ? C.red : dirty ? C.gold : C.s2,
+            color: saveError ? C.txB : dirty ? C.bg : C.txD,
+            transition: "all .2s",
+          }}
+        >
+          {saving ? "SAVING..." : saveError ? "RETRY" : dirty ? "SAVE" : "SAVED"}
         </button>
         <UserButton afterSignOutUrl="/" />
       </div>
