@@ -5,6 +5,7 @@ import { clerkMiddleware } from "@clerk/express";
 import { healthRouter } from "./routes/health.js";
 import { meRouter } from "./routes/me.js";
 import { profilesRouter } from "./routes/profiles.js";
+import { optimizeRouter } from "./routes/optimize.js";
 
 const app = express();
 
@@ -32,6 +33,7 @@ if (process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY) {
 app.use("/health", healthRouter);
 app.use("/me", meRouter);
 app.use("/profiles", profilesRouter);
+app.use("/optimize", optimizeRouter);
 
 const port = Number(process.env.PORT ?? 3001);
 app.listen(port, () => {
