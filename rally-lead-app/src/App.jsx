@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useCharacterState } from "./hooks/useCharacterState";
 import { useProfile } from "./hooks/useProfile";
-import { computeAttackBuffs, computeGarrisonBuffs } from "./engine/buffs";
-import { computeSkillMod, computeStatProducts } from "./engine/combat";
+import { useDerivedState } from "./hooks/useDerivedState";
 import { C, FONT_BODY } from "./theme";
 import { Header, TabBar, Footer } from "./components/Layout";
 import { SignInScreen } from "./components/SignInScreen";
@@ -29,6 +28,18 @@ export default function App() {
         <ProfileGate />
       </SignedIn>
     </>
+  );
+}
+
+function DerivedLoading({ loading, error }) {
+  return (
+    <div style={{ padding: 24, textAlign: "center", color: C.txD, fontSize: 12 }}>
+      {error
+        ? <span style={{ color: C.red }}>Failed to compute: {error}</span>
+        : loading
+        ? "Computing..."
+        : "Waiting for character sheet..."}
+    </div>
   );
 }
 
@@ -97,19 +108,11 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
   const { cs, dirty, saving, saveError, save, update, numUp, updateRoster, removeRoster, exportState } = state;
   const [tab, setTab] = useState("bonuses");
 
-  const attackBuffs = useMemo(() => computeAttackBuffs(cs), [cs]);
-  const attackStatProducts = useMemo(() => computeStatProducts(attackBuffs, cs), [attackBuffs, cs]);
-  const attackSkillMod = useMemo(
-    () => computeSkillMod(cs.attackRally?.selectedHeroes || [], cs.heroRoster || {}, cs.attackRally?.joinerSlots || []),
-    [cs.attackRally, cs.heroRoster]
-  );
-
-  const garrisonBuffs = useMemo(() => computeGarrisonBuffs(cs), [cs]);
-  const garrisonStatProducts = useMemo(() => computeStatProducts(garrisonBuffs, cs), [garrisonBuffs, cs]);
-  const garrisonSkillMod = useMemo(
-    () => computeSkillMod(cs.garrisonLead?.selectedHeroes || [], cs.heroRoster || {}, []),
-    [cs.garrisonLead, cs.heroRoster]
-  );
+  const {
+    attackBuffs, attackStatProducts, attackSkillMod,
+    garrisonBuffs, garrisonStatProducts, garrisonSkillMod,
+    loading: derivedLoading, error: derivedError,
+  } = useDerivedState(cs);
 
   return (
     <div style={{ fontFamily: FONT_BODY, background: C.bg, color: C.tx, minHeight: "100vh" }}>
@@ -132,14 +135,18 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
         {tab === "pets" && <PetsTab cs={cs} numUp={numUp} />}
         {tab === "herogear" && <HeroGearTab cs={cs} numUp={numUp} />}
         {tab === "roster" && <HeroRosterTab cs={cs} update={update} updateRoster={updateRoster} removeRoster={removeRoster} />}
-        {tab === "attack" && (
+        {tab === "attack" && (attackStatProducts ? (
           <AttackRallyTab cs={cs} update={update} numUp={numUp}
             totalBuffs={attackBuffs} statProducts={attackStatProducts} skillMod={attackSkillMod} />
-        )}
-        {tab === "garrison" && (
+        ) : (
+          <DerivedLoading loading={derivedLoading} error={derivedError} />
+        ))}
+        {tab === "garrison" && (garrisonStatProducts ? (
           <GarrisonLeadTab cs={cs} update={update}
             totalBuffs={garrisonBuffs} statProducts={garrisonStatProducts} skillMod={garrisonSkillMod} />
-        )}
+        ) : (
+          <DerivedLoading loading={derivedLoading} error={derivedError} />
+        ))}
         {tab === "invest" && <OptimizerTab cs={cs} />}
         {tab === "planner" && <ScenarioPlannerTab cs={cs} />}
         {tab === "counter" && <CounterTab />}
