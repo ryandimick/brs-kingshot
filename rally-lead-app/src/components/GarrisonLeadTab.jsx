@@ -1,24 +1,18 @@
-import { useMemo } from "react";
 import { TROOP_TYPES } from "../data/constants";
-import { HERO_DB } from "../data/hero-database";
+import { HERO_DB } from "../data/hero-catalog";
 import { C, troopColor, FONT_DISPLAY } from "../theme";
 import { Chip } from "./ui/Chip";
 import { Lbl } from "./ui/Lbl";
 import { BuffPanel } from "./ui/BuffPanel";
-import { optimizeLineup } from "../engine/combat";
 
 const TROOP_SLOTS = ["Infantry", "Cavalry", "Archer"];
 
-export function GarrisonLeadTab({ cs, update, totalBuffs, statProducts, skillMod }) {
+export function GarrisonLeadTab({ cs, update, totalBuffs, statProducts, skillMod, optimalLineup }) {
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
   const selected = cs.garrisonLead?.selectedHeroes || ["", "", ""];
   const offenseWeight = cs.garrisonLead?.offenseWeight ?? 25;
-
-  const optimalLineup = useMemo(
-    () => optimizeLineup(cs, "garrison"),
-    [cs]
-  );
+  const optimal = optimalLineup || ["", "", ""];
 
   const setHero = (slotIdx, name) => {
     const next = [...selected];
@@ -27,10 +21,10 @@ export function GarrisonLeadTab({ cs, update, totalBuffs, statProducts, skillMod
   };
 
   const applyOptimal = () => {
-    update("garrisonLead.selectedHeroes", [...optimalLineup]);
+    update("garrisonLead.selectedHeroes", [...optimal]);
   };
 
-  const isOptimal = selected[0] === optimalLineup[0] && selected[1] === optimalLineup[1] && selected[2] === optimalLineup[2];
+  const isOptimal = selected[0] === optimal[0] && selected[1] === optimal[1] && selected[2] === optimal[2];
 
   return (
     <div>

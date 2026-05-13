@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HERO_DB } from "../data/hero-database";
+import { HERO_DB } from "../data/hero-catalog";
 import { C, troopColor, FONT_DISPLAY } from "../theme";
 import { Lbl } from "./ui/Lbl";
 

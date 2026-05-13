@@ -1,26 +1,20 @@
-import { useMemo } from "react";
 import { TROOP_TYPES } from "../data/constants";
-import { HERO_DB } from "../data/hero-database";
+import { HERO_DB } from "../data/hero-catalog";
 import { C, troopColor, FONT_DISPLAY } from "../theme";
 import { Chip } from "./ui/Chip";
 import { Lbl } from "./ui/Lbl";
 import { BuffPanel } from "./ui/BuffPanel";
-import { optimizeLineup } from "../engine/combat";
 import { CompositionEditor } from "./ui/CompositionEditor";
 
 const TROOP_SLOTS = ["Infantry", "Cavalry", "Archer"];
 
-export function AttackRallyTab({ cs, update, numUp, totalBuffs, statProducts, skillMod }) {
+export function AttackRallyTab({ cs, update, numUp, totalBuffs, statProducts, skillMod, optimalLineup }) {
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
   const selected = cs.attackRally?.selectedHeroes || ["", "", ""];
   const joiners = cs.attackRally?.joinerSlots || ["", "", "", ""];
   const offenseWeight = cs.attackRally?.offenseWeight ?? 75;
-
-  const optimalLineup = useMemo(
-    () => optimizeLineup(cs, "attack"),
-    [cs]
-  );
+  const optimal = optimalLineup || ["", "", ""];
 
   const setHero = (slotIdx, name) => {
     const next = [...selected];
@@ -35,10 +29,10 @@ export function AttackRallyTab({ cs, update, numUp, totalBuffs, statProducts, sk
   };
 
   const applyOptimal = () => {
-    update("attackRally.selectedHeroes", [...optimalLineup]);
+    update("attackRally.selectedHeroes", [...optimal]);
   };
 
-  const isOptimal = selected[0] === optimalLineup[0] && selected[1] === optimalLineup[1] && selected[2] === optimalLineup[2];
+  const isOptimal = selected[0] === optimal[0] && selected[1] === optimal[1] && selected[2] === optimal[2];
 
   return (
     <div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, FONT_DISPLAY, FONT_MONO, FONT_BODY } from "../theme";
 import { Lbl } from "./ui/Lbl";
-import { PLANNER_CATEGORIES } from "../engine/planner";
+import { PLANNER_CATEGORIES } from "../data/planner-categories";
 import { useApi } from "../lib/api";
 
 export function ScenarioPlannerTab({ cs }) {

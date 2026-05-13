@@ -1,4 +1,4 @@
-import { HERO_DB } from "../data/hero-database";
+import { HERO_DB } from "../data/hero-catalog";
 
 const STORAGE_KEY = "kingshot-char-v3";
 const V2_STORAGE_KEY = "kingshot-char-v2";

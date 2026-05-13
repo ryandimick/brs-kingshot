@@ -8,6 +8,8 @@ const EMPTY = {
   garrisonStatProducts: null,
   attackSkillMod: null,
   garrisonSkillMod: null,
+  attackOptimalLineup: null,
+  garrisonOptimalLineup: null,
 };
 
 // Server-computed derived state for a character sheet: buffs, stat products,

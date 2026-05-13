@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireSession } from "../middleware/auth.js";
 import { computeAttackBuffs, computeGarrisonBuffs } from "../engine/buffs.js";
-import { computeStatProducts, computeSkillMod } from "../engine/combat.js";
+import { computeStatProducts, computeSkillMod, optimizeLineup } from "../engine/combat.js";
 
 export const computeRouter = Router();
 
@@ -38,6 +38,9 @@ computeRouter.post("/state", (req, res) => {
     []
   );
 
+  const attackOptimalLineup = optimizeLineup(cs, "attack");
+  const garrisonOptimalLineup = optimizeLineup(cs, "garrison");
+
   res.json({
     attackBuffs,
     garrisonBuffs,
@@ -45,5 +48,7 @@ computeRouter.post("/state", (req, res) => {
     garrisonStatProducts,
     attackSkillMod,
     garrisonSkillMod,
+    attackOptimalLineup,
+    garrisonOptimalLineup,
   });
 });

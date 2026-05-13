@@ -109,8 +109,8 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
   const [tab, setTab] = useState("bonuses");
 
   const {
-    attackBuffs, attackStatProducts, attackSkillMod,
-    garrisonBuffs, garrisonStatProducts, garrisonSkillMod,
+    attackBuffs, attackStatProducts, attackSkillMod, attackOptimalLineup,
+    garrisonBuffs, garrisonStatProducts, garrisonSkillMod, garrisonOptimalLineup,
     loading: derivedLoading, error: derivedError,
   } = useDerivedState(cs);
 
@@ -137,13 +137,15 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
         {tab === "roster" && <HeroRosterTab cs={cs} update={update} updateRoster={updateRoster} removeRoster={removeRoster} />}
         {tab === "attack" && (attackStatProducts ? (
           <AttackRallyTab cs={cs} update={update} numUp={numUp}
-            totalBuffs={attackBuffs} statProducts={attackStatProducts} skillMod={attackSkillMod} />
+            totalBuffs={attackBuffs} statProducts={attackStatProducts}
+            skillMod={attackSkillMod} optimalLineup={attackOptimalLineup} />
         ) : (
           <DerivedLoading loading={derivedLoading} error={derivedError} />
         ))}
         {tab === "garrison" && (garrisonStatProducts ? (
           <GarrisonLeadTab cs={cs} update={update}
-            totalBuffs={garrisonBuffs} statProducts={garrisonStatProducts} skillMod={garrisonSkillMod} />
+            totalBuffs={garrisonBuffs} statProducts={garrisonStatProducts}
+            skillMod={garrisonSkillMod} optimalLineup={garrisonOptimalLineup} />
         ) : (
           <DerivedLoading loading={derivedLoading} error={derivedError} />
         ))}
