@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { TROOP_TYPES, STAT_NAMES } from "../data/constants";
+import { TROOP_TYPES } from "../data/constants";
+
+// In-game display order on the bonus screen: ATK, DEF, Leth, HP.
+const BONUS_STAT_ORDER = ["ATK", "DEF", "Leth", "HP"];
 import { GOV_GEAR_SLOTS, GOV_GEAR_TIERS, CHARM_LEVELS, getSetBonus } from "../data/gear-tables";
 import { HERO_DB } from "../data/hero-catalog";
 import { C, troopColor, FONT_DISPLAY, FONT_BODY, FONT_MONO, tierColorFromLabel } from "../theme";
@@ -222,7 +225,7 @@ function BonusOverviewCard({ scope, cs, numUp }) {
         Total in-game buff % for this scope (research + alliance + gear + charms + pets combined).
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {STAT_NAMES.map(s => (
+        {BONUS_STAT_ORDER.map(s => (
           <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 10, color: C.txD, width: 40 }}>{s}</span>
             <input
