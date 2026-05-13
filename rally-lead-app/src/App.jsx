@@ -152,7 +152,7 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
         ))}
         {tab === "invest" && <OptimizerTab cs={cs} />}
         {tab === "planner" && <ScenarioPlannerTab cs={cs} />}
-        {tab === "packs" && <PacksTab cs={cs} cycleAnchor={profile.activeProfile?.cycleAnchor} />}
+        {tab === "packs" && <PacksTab cs={cs} />}
         {tab === "counter" && <CounterTab />}
       </div>
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { C, FONT_BODY, FONT_DISPLAY, FONT_MONO } from "../theme";
 import { Lbl } from "./ui/Lbl";
 import { useApi } from "../lib/api";
-import { dayOfCycle, isPackAvailableOnDay } from "../lib/cycle";
+import { dayOfCycle, serverDay, isPackAvailableOnDay } from "../lib/cycle";
 
 // Friendly labels for the bundle keys the planner kernel knows about.
 const RESOURCE_LABEL = {
@@ -40,7 +40,7 @@ function formatBundle(bundle, knownOnly = false) {
     .filter(Boolean);
 }
 
-export function PacksTab({ cs, cycleAnchor }) {
+export function PacksTab({ cs }) {
   const api = useApi();
   const [view, setView] = useState("browse"); // "browse" | "dollar"
   const [catalog, setCatalog] = useState(null);
@@ -53,7 +53,8 @@ export function PacksTab({ cs, cycleAnchor }) {
       .catch(e => setCatalogError(e.message || String(e)));
   }, [api]);
 
-  const today = useMemo(() => dayOfCycle(cycleAnchor), [cycleAnchor]);
+  const today = useMemo(() => dayOfCycle(), []);
+  const serverDayNum = useMemo(() => serverDay(), []);
   const filteredCatalog = useMemo(() => {
     if (!catalog) return null;
     if (!todayOnly || today == null) return catalog;
@@ -85,9 +86,12 @@ export function PacksTab({ cs, cycleAnchor }) {
           {today != null && (
             <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: C.txD, marginRight: 6 }}>
               Day <span style={{ color: C.txB }}>{today}</span> / 28
+              {serverDayNum != null && (
+                <span style={{ marginLeft: 8 }}>· Server Day <span style={{ color: C.txB }}>{serverDayNum}</span></span>
+              )}
             </span>
           )}
-          <button onClick={() => setTodayOnly(t => !t)} disabled={today == null} title={today == null ? "No cycle anchor on profile" : undefined} style={{
+          <button onClick={() => setTodayOnly(t => !t)} disabled={today == null} style={{
             fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, padding: "6px 10px",
             borderRadius: 4, border: `1px solid ${todayOnly ? C.gold : C.brd}`,
             background: todayOnly ? C.gold + "22" : C.s1,
