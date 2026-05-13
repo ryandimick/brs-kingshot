@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { C, FONT_BODY, FONT_DISPLAY, FONT_MONO } from "../theme";
 import { Lbl } from "./ui/Lbl";
 import { useApi } from "../lib/api";
+import { dayOfCycle, isPackAvailableOnDay } from "../lib/cycle";
 
 // Friendly labels for the bundle keys the planner kernel knows about.
 const RESOURCE_LABEL = {
@@ -39,11 +40,12 @@ function formatBundle(bundle, knownOnly = false) {
     .filter(Boolean);
 }
 
-export function PacksTab({ cs }) {
+export function PacksTab({ cs, cycleAnchor }) {
   const api = useApi();
   const [view, setView] = useState("browse"); // "browse" | "dollar"
   const [catalog, setCatalog] = useState(null);
   const [catalogError, setCatalogError] = useState(null);
+  const [todayOnly, setTodayOnly] = useState(true);
 
   useEffect(() => {
     api("/catalog/packs")
@@ -51,9 +53,20 @@ export function PacksTab({ cs }) {
       .catch(e => setCatalogError(e.message || String(e)));
   }, [api]);
 
+  const today = useMemo(() => dayOfCycle(cycleAnchor), [cycleAnchor]);
+  const filteredCatalog = useMemo(() => {
+    if (!catalog) return null;
+    if (!todayOnly || today == null) return catalog;
+    return catalog.filter(p => isPackAvailableOnDay(p, today));
+  }, [catalog, todayOnly, today]);
+  const availablePackIds = useMemo(
+    () => filteredCatalog?.map(p => p.id) ?? null,
+    [filteredCatalog]
+  );
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
         {[
           { id: "browse", label: "Browse Packs" },
           { id: "dollar", label: "$ Mode Planner" },
@@ -68,6 +81,23 @@ export function PacksTab({ cs }) {
             {o.label}
           </button>
         ))}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
+          {today != null && (
+            <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: C.txD, marginRight: 6 }}>
+              Day <span style={{ color: C.txB }}>{today}</span> / 28
+            </span>
+          )}
+          <button onClick={() => setTodayOnly(t => !t)} disabled={today == null} title={today == null ? "No cycle anchor on profile" : undefined} style={{
+            fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, padding: "6px 10px",
+            borderRadius: 4, border: `1px solid ${todayOnly ? C.gold : C.brd}`,
+            background: todayOnly ? C.gold + "22" : C.s1,
+            color: todayOnly ? C.gold : C.txD,
+            cursor: today == null ? "default" : "pointer",
+            opacity: today == null ? 0.5 : 1,
+          }}>
+            {todayOnly ? "Today only ✓" : "Today only"}
+          </button>
+        </div>
       </div>
 
       {catalogError && (
@@ -86,23 +116,32 @@ export function PacksTab({ cs }) {
         </div>
       )}
 
-      {catalog && view === "browse" && <BrowseView cs={cs} catalog={catalog} />}
-      {catalog && view === "dollar" && <DollarView cs={cs} />}
+      {catalog && view === "browse" && (
+        <BrowseView cs={cs} catalog={filteredCatalog} todayOnly={todayOnly} today={today} />
+      )}
+      {catalog && view === "dollar" && (
+        <DollarView cs={cs} packIds={todayOnly && availablePackIds ? availablePackIds : null} />
+      )}
     </div>
   );
 }
 
 // ─── Browse view ────────────────────────────────────────────────────────
 
-function BrowseView({ cs, catalog }) {
+function BrowseView({ cs, catalog, todayOnly, today }) {
   const [expanded, setExpanded] = useState(null); // pack.id
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <Lbl>Available Packs</Lbl>
+      <Lbl>{todayOnly && today != null ? `Packs Available on Day ${today}` : "All Packs"}</Lbl>
       <div style={{ fontSize: 11, color: C.txD, marginBottom: 4 }}>
         Click a pack to expand its tiers and compute personal ROI.
       </div>
+      {catalog.length === 0 && (
+        <div style={{ padding: 20, textAlign: "center", color: C.txD, fontSize: 12 }}>
+          No packs available on day {today}. Toggle "Today only" off to see the full catalog.
+        </div>
+      )}
       {catalog.map(pack => (
         <PackCard key={pack.id} pack={pack} cs={cs}
           expanded={expanded === pack.id}
@@ -245,7 +284,7 @@ function TierRow({ cs, packId, tier }) {
 
 // ─── Dollar-mode view ───────────────────────────────────────────────────
 
-function DollarView({ cs }) {
+function DollarView({ cs, packIds }) {
   const api = useApi();
   const [dollarBudget, setDollarBudget] = useState(50);
   const [maxCopies, setMaxCopies] = useState(3);
@@ -258,14 +297,16 @@ function DollarView({ cs }) {
     setLoading(true);
     setError(null);
     try {
+      const body = {
+        characterSheet: cs,
+        dollarBudget: Number(dollarBudget),
+        maxCopiesPerPack: Number(maxCopies),
+        cutoffRatio: Number(cutoffRatio),
+      };
+      if (packIds) body.packIds = packIds;
       const r = await api("/optimize/dollars", {
         method: "POST",
-        body: JSON.stringify({
-          characterSheet: cs,
-          dollarBudget: Number(dollarBudget),
-          maxCopiesPerPack: Number(maxCopies),
-          cutoffRatio: Number(cutoffRatio),
-        }),
+        body: JSON.stringify(body),
       });
       setResult(r);
     } catch (e) {
@@ -280,6 +321,9 @@ function DollarView({ cs }) {
       <Lbl>Dollar-Mode Planner</Lbl>
       <div style={{ fontSize: 11, color: C.txD, marginBottom: 10 }}>
         Recommends the best pack-buying sequence for your current state, by personal %/$.
+        {packIds
+          ? <> Limited to <span style={{ color: C.gold }}>{packIds.length}</span> pack{packIds.length === 1 ? "" : "s"} available today.</>
+          : <> Considering the full catalog.</>}
       </div>
 
       <div style={{
