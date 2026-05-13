@@ -12,6 +12,7 @@ const TABS = [
   { id: "garrison", l: "Garrison Lead" },
   { id: "invest", l: "Optimal Investment" },
   { id: "planner", l: "Scenario Planner" },
+  { id: "packs", l: "Packs" },
   { id: "counter", l: "Counter Search" },
 ];
 

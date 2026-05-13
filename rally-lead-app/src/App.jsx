@@ -16,6 +16,7 @@ import { AttackRallyTab } from "./components/AttackRallyTab";
 import { GarrisonLeadTab } from "./components/GarrisonLeadTab";
 import { OptimizerTab } from "./components/OptimizerTab";
 import { ScenarioPlannerTab } from "./components/ScenarioPlannerTab";
+import { PacksTab } from "./components/PacksTab";
 import { CounterTab } from "./components/CounterTab";
 
 export default function App() {
@@ -151,6 +152,7 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
         ))}
         {tab === "invest" && <OptimizerTab cs={cs} />}
         {tab === "planner" && <ScenarioPlannerTab cs={cs} />}
+        {tab === "packs" && <PacksTab cs={cs} />}
         {tab === "counter" && <CounterTab />}
       </div>
 
