@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TROOP_TYPES } from "../data/constants";
 import { C, troopColor, FONT_DISPLAY, FONT_MONO, FONT_BODY, TIER_COLORS } from "../theme";
+import { useApi } from "../lib/api";
 
 const FILTER_OPTIONS = [
   { id: "all", label: "All" },
@@ -11,10 +12,37 @@ const FILTER_OPTIONS = [
   { id: "widget", label: "Hero Widgets" },
 ];
 
-export function OptimizerTab({ investments }) {
+export function OptimizerTab({ cs }) {
+  const api = useApi();
+  const [investments, setInvestments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [expInv, setExpInv] = useState(null);
   const [filter, setFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("gain");  // "gain" | "usdEff"
+  const [sortBy, setSortBy] = useState("gain");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api("/optimize/marginal", {
+      method: "POST",
+      body: JSON.stringify({ characterSheet: cs }),
+    })
+      .then(({ investments: list }) => {
+        if (!cancelled) {
+          setInvestments(list);
+          setLoading(false);
+        }
+      })
+      .catch(e => {
+        if (!cancelled) {
+          setError(e.message || String(e));
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [cs, api]);
 
   const byFilter = filter === "all" ? investments : investments.filter(inv => inv.costType === filter);
   const filtered = sortBy === "usdEff"
@@ -32,7 +60,6 @@ export function OptimizerTab({ investments }) {
         Click any row for per-troop breakdown.
       </div>
 
-      {/* Filter + Sort buttons */}
       <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
         {FILTER_OPTIONS.map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)} style={{
@@ -63,8 +90,24 @@ export function OptimizerTab({ investments }) {
         </div>
       </div>
 
+      {error && (
+        <div style={{
+          padding: 12, fontSize: 12, color: C.red,
+          background: `${C.red}15`, borderRadius: 4, border: `1px solid ${C.red}55`,
+          marginBottom: 12,
+        }}>
+          Failed to load: {error}
+        </div>
+      )}
+
+      {loading && investments.length === 0 && (
+        <div style={{ padding: 20, textAlign: "center", color: C.txD, fontSize: 12 }}>
+          Computing investments...
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        {filtered.map((inv, idx) => {
+        {filtered.map((inv) => {
           const isExp = expInv === inv.id;
           const barW = Math.min(100, (inv.comb / Math.max(maxComb, .001)) * 100);
           const tCl = TIER_COLORS[inv.tier];
@@ -94,10 +137,10 @@ export function OptimizerTab({ investments }) {
                   <div style={{ display: "flex", gap: 10, fontSize: 10, fontFamily: FONT_MONO, marginTop: 3, flexWrap: "wrap" }}>
                     {inv.atkComb != null && <span style={{ color: C.grn }}>ATK +{inv.atkComb.toFixed(2)}%</span>}
                     {inv.garComb != null && <span style={{ color: C.blu }}>GAR +{inv.garComb.toFixed(2)}%</span>}
-                    {inv.costLabel && <span style={{ color: C.txD }}>{"\u2022"} {inv.costLabel}</span>}
+                    {inv.costLabel && <span style={{ color: C.txD }}>{"•"} {inv.costLabel}</span>}
                     {inv.usdCost != null && (
                       <span style={{ color: C.gold }}>
-                        {"\u2022"} ${inv.usdCost.toFixed(2)}
+                        {"•"} ${inv.usdCost.toFixed(2)}
                         {inv.usdEff != null && ` (${(1/inv.usdEff).toFixed(2)}/% )`}
                       </span>
                     )}
@@ -122,7 +165,7 @@ export function OptimizerTab({ investments }) {
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && !error && (
           <div style={{ padding: 20, textAlign: "center", color: C.txD, fontSize: 12 }}>
             No upgrades available for this category.
           </div>

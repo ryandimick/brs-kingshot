@@ -3,7 +3,7 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useCharacterState } from "./hooks/useCharacterState";
 import { useProfile } from "./hooks/useProfile";
 import { computeAttackBuffs, computeGarrisonBuffs } from "./engine/buffs";
-import { computeSkillMod, computeStatProducts, computeInvestments } from "./engine/combat";
+import { computeSkillMod, computeStatProducts } from "./engine/combat";
 import { C, FONT_BODY } from "./theme";
 import { Header, TabBar, Footer } from "./components/Layout";
 import { SignInScreen } from "./components/SignInScreen";
@@ -111,11 +111,6 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
     [cs.garrisonLead, cs.heroRoster]
   );
 
-  const investments = useMemo(
-    () => computeInvestments(cs, attackBuffs, garrisonBuffs),
-    [cs, attackBuffs, garrisonBuffs]
-  );
-
   return (
     <div style={{ fontFamily: FONT_BODY, background: C.bg, color: C.tx, minHeight: "100vh" }}>
       <Header
@@ -145,7 +140,7 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
           <GarrisonLeadTab cs={cs} update={update}
             totalBuffs={garrisonBuffs} statProducts={garrisonStatProducts} skillMod={garrisonSkillMod} />
         )}
-        {tab === "invest" && <OptimizerTab investments={investments} />}
+        {tab === "invest" && <OptimizerTab cs={cs} />}
         {tab === "planner" && <ScenarioPlannerTab cs={cs} />}
         {tab === "counter" && <CounterTab />}
       </div>
