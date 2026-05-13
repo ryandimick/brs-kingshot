@@ -114,7 +114,6 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
             numUp={numUp}
             updateRoster={updateRoster}
             removeRoster={removeRoster}
-            activeProfileName={profile.activeProfile?.name}
           />
         )}
         {tab === "invest" && (

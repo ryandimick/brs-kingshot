@@ -36,6 +36,19 @@ export function serverDay(now = new Date(), launchDate = KINGDOM_1650_SERVER_DAY
   return Math.floor((now.getTime() - start.getTime()) / MS_PER_DAY) + 1;
 }
 
+// Server-day thresholds at which each hero generation unlocks. Best-guess
+// approximation for Kingdom 1650 — adjust as we confirm the real cadence.
+// At server day 96 (today) this returns 4.
+const GEN_UNLOCK_DAYS = [0, 30, 60, 90, 120, 150];
+
+export function maxGenForServerDay(day) {
+  if (day == null) return GEN_UNLOCK_DAYS.length;
+  for (let i = GEN_UNLOCK_DAYS.length - 1; i >= 0; i--) {
+    if (day >= GEN_UNLOCK_DAYS[i]) return i + 1;
+  }
+  return 1;
+}
+
 // Is day-of-cycle `day` inside this window? Handles wrap-around windows
 // (e.g., Combat Medic Days 28→1).
 export function isDayInWindow(day, window, cycleDays = DEFAULT_CYCLE_DAYS) {

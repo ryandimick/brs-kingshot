@@ -1,19 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TROOP_TYPES } from "../data/constants";
-
-// In-game display order on the bonus screen: ATK, DEF, Leth, HP.
-const BONUS_STAT_ORDER = ["ATK", "DEF", "Leth", "HP"];
 import { GOV_GEAR_SLOTS, GOV_GEAR_TIERS, CHARM_LEVELS, getSetBonus } from "../data/gear-tables";
 import { HERO_DB } from "../data/hero-catalog";
 import { C, troopColor, FONT_DISPLAY, FONT_BODY, FONT_MONO, tierColorFromLabel } from "../theme";
 import { GEAR_PIECE_STAT, heroGearPieceStat } from "../data/hero-tables";
+import { serverDay, maxGenForServerDay } from "../lib/cycle";
+
+// In-game bonus screen order: ATK, DEF, Leth, HP.
+const BONUS_STAT_ORDER = ["ATK", "DEF", "Leth", "HP"];
 
 const TROOP_ORDER = ["Infantry", "Cavalry", "Archer"];
 const PIECE_NAMES = { helm: "Helm", boots: "Boots", chest: "Chest", gloves: "Gloves" };
 const PIECE_ICONS = { helm: "\u{1F3A9}", boots: "\u{1F462}", chest: "\u{1F6E1}", gloves: "\u{1F9E4}" };
-const MAX_GEN = Math.max(...HERO_DB.map(h => h.gen));
 
-// Star picker shared by hero rows
+// Star picker (whole + half-steps to 5.0)
 const STAR_OPTIONS = [];
 for (let star = 0; star <= 4; star++) {
   for (let step = 0; step <= 5; step++) STAR_OPTIONS.push(star + step * 0.1);
@@ -28,33 +28,31 @@ function formatStars(v) {
 }
 
 export function CharacterSheetTab({
-  cs, update, numUp, updateRoster, removeRoster, activeProfileName,
+  cs, update, numUp, updateRoster, removeRoster,
 }) {
+  const currentMaxGen = useMemo(() => maxGenForServerDay(serverDay()), []);
+
   return (
     <div style={{
       display: "grid",
       gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
       gap: 12,
+      alignItems: "start",
     }}>
-      {/* ── Row 1 ──────────────────────────────── */}
+      {/* ── Gear row ──────────────────────────── */}
       <GovGearCharmsCard cs={cs} update={update} />
       {TROOP_ORDER.map(t => (
-        <HeroGearColumn key={t} troop={t} cs={cs} numUp={numUp} />
+        <HeroGearAndHeroesCard
+          key={t} troop={t} cs={cs}
+          numUp={numUp} updateRoster={updateRoster} removeRoster={removeRoster}
+          maxGen={currentMaxGen}
+        />
       ))}
 
-      {/* ── Row 2 ──────────────────────────────── */}
+      {/* ── Bonus Overview row ────────────────── */}
       <BonusOverviewCard scope="squads" cs={cs} numUp={numUp} />
       {TROOP_ORDER.map(t => (
         <BonusOverviewCard key={t} scope={t} cs={cs} numUp={numUp} />
-      ))}
-
-      {/* ── Row 3 ──────────────────────────────── */}
-      <EmblemCard cs={cs} update={update} activeProfileName={activeProfileName} />
-      {TROOP_ORDER.map(t => (
-        <HeroColumn
-          key={t} troop={t} cs={cs}
-          updateRoster={updateRoster} removeRoster={removeRoster}
-        />
       ))}
     </div>
   );
@@ -79,7 +77,7 @@ function Card({ title, accent, children }) {
   );
 }
 
-// ─── Row 1, Col 1: Gov Gear + Charms ──────────────────────────────────────
+// ─── Gov Gear + Charms ────────────────────────────────────────────────────
 
 function GovGearCharmsCard({ cs, update }) {
   const slots = cs.govGearSlots || {};
@@ -148,9 +146,21 @@ function GovGearCharmsCard({ cs, update }) {
   );
 }
 
-// ─── Row 1, Cols 2-4: Hero Gear per troop ────────────────────────────────
+// ─── Hero Gear + Heroes (one combined card per troop) ────────────────────
 
-function HeroGearColumn({ troop, cs, numUp }) {
+function HeroGearAndHeroesCard({ troop, cs, numUp, updateRoster, removeRoster, maxGen }) {
+  return (
+    <Card title={`${troop.toUpperCase()}`} accent={troopColor[troop]}>
+      <GearPieceGrid troop={troop} cs={cs} numUp={numUp} />
+      <HeroList
+        troop={troop} cs={cs} maxGen={maxGen}
+        updateRoster={updateRoster} removeRoster={removeRoster}
+      />
+    </Card>
+  );
+}
+
+function GearPieceGrid({ troop, cs, numUp }) {
   const gearSet = cs.heroGear?.[troop] || {};
   let lethTotal = 0, hpTotal = 0;
   for (const [pid, stat] of Object.entries(GEAR_PIECE_STAT)) {
@@ -159,9 +169,8 @@ function HeroGearColumn({ troop, cs, numUp }) {
     if (stat === "Leth") lethTotal += val;
     else hpTotal += val;
   }
-
   return (
-    <Card title={`HERO GEAR — ${troop.toUpperCase()}`} accent={troopColor[troop]}>
+    <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
         {Object.entries(GEAR_PIECE_STAT).map(([pieceId, stat]) => {
           const piece = gearSet[pieceId] || { enh: 0, mast: 0 };
@@ -172,7 +181,6 @@ function HeroGearColumn({ troop, cs, numUp }) {
               background: C.bg, border: `1px solid ${C.brd}`,
               borderRadius: 4, padding: 6, minWidth: 0, minHeight: 92,
             }}>
-              {/* Centered icon + name + stat label */}
               <div style={{ textAlign: "center", marginTop: 14 }}>
                 <div style={{ fontSize: 18 }}>{PIECE_ICONS[pieceId]}</div>
                 <div style={{ fontSize: 9, color: C.txD, marginTop: 2 }}>
@@ -182,30 +190,22 @@ function HeroGearColumn({ troop, cs, numUp }) {
                   {stat.toUpperCase()}
                 </div>
               </div>
-              {/* Enh — top-right corner */}
               <div style={{ position: "absolute", top: 4, right: 4, textAlign: "center" }}>
                 <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>ENH</div>
                 <input
                   type="number" min={0} max={200}
                   value={piece.enh}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.enh`, e.target.value)}
-                  style={{
-                    width: 38, fontSize: 10, padding: "1px 2px",
-                    textAlign: "center", fontFamily: FONT_MONO,
-                  }}
+                  style={{ width: 38, fontSize: 10, padding: "1px 2px", textAlign: "center", fontFamily: FONT_MONO }}
                 />
               </div>
-              {/* Mast — bottom-right corner */}
               <div style={{ position: "absolute", bottom: 4, right: 4, textAlign: "center" }}>
                 <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>MAST</div>
                 <input
                   type="number" min={0} max={20}
                   value={piece.mast}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.mast`, e.target.value)}
-                  style={{
-                    width: 38, fontSize: 10, padding: "1px 2px",
-                    textAlign: "center", fontFamily: FONT_MONO,
-                  }}
+                  style={{ width: 38, fontSize: 10, padding: "1px 2px", textAlign: "center", fontFamily: FONT_MONO }}
                 />
               </div>
             </div>
@@ -219,92 +219,12 @@ function HeroGearColumn({ troop, cs, numUp }) {
         <span style={{ color: C.grn }}>Leth {lethTotal.toFixed(1)}%</span>
         <span style={{ color: C.blu }}>HP {hpTotal.toFixed(1)}%</span>
       </div>
-    </Card>
+    </>
   );
 }
 
-// ─── Row 2: Bonus Overview inputs ────────────────────────────────────────
-
-function BonusOverviewCard({ scope, cs, numUp }) {
-  const isSquads = scope === "squads";
-  const bo = cs.bonusOverview || {};
-  const values = bo[scope] || {};
-  const accent = isSquads ? C.gold : troopColor[scope];
-  const title = isSquads ? "BONUS — SQUADS" : `BONUS — ${scope.toUpperCase()}`;
-
-  return (
-    <Card title={title} accent={accent}>
-      <div style={{ fontSize: 9, color: C.txD, marginBottom: 2 }}>
-        Total in-game buff % for this scope (research + alliance + gear + charms + pets combined).
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {BONUS_STAT_ORDER.map(s => (
-          <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: C.txD, width: 40 }}>{s}</span>
-            <input
-              type="number"
-              value={values[s] || 0}
-              onChange={e => numUp(`bonusOverview.${scope}.${s}`, e.target.value)}
-              style={{ flex: 1, fontSize: 11, padding: "3px 4px", minWidth: 0 }}
-            />
-            <span style={{ fontSize: 9, color: C.txD }}>%</span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-// ─── Row 3, Col 1: Emblem ────────────────────────────────────────────────
-
-function EmblemCard({ cs, update, activeProfileName }) {
-  const maxGen = cs.maxGeneration || MAX_GEN;
-  return (
-    <Card title="PROFILE" accent={C.gold}>
-      <div style={{ textAlign: "center", padding: "10px 0" }}>
-        <div style={{
-          fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 900,
-          color: C.gold, letterSpacing: "2px", marginBottom: 4,
-        }}>
-          BRS
-        </div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 9, color: C.txD, letterSpacing: "1.5px" }}>
-          KINGSHOT RALLY
-        </div>
-        {activeProfileName && (
-          <div style={{ fontSize: 11, fontFamily: FONT_BODY, color: C.txB, marginTop: 10 }}>
-            {activeProfileName}
-          </div>
-        )}
-      </div>
-      <div style={{
-        marginTop: "auto", paddingTop: 8, borderTop: `1px solid ${C.brd}`,
-      }}>
-        <div style={{ fontSize: 9, color: C.txD, marginBottom: 4, letterSpacing: "0.5px" }}>
-          SERVER GENERATION
-        </div>
-        <select
-          value={maxGen}
-          onChange={e => update("maxGeneration", Number(e.target.value))}
-          style={{ width: "100%", fontSize: 11 }}
-        >
-          {Array.from({ length: MAX_GEN }, (_, i) => i + 1).map(g => (
-            <option key={g} value={g}>Gen {g}</option>
-          ))}
-        </select>
-        <div style={{ fontSize: 9, color: C.txD, marginTop: 4 }}>
-          Caps which heroes can be added.
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// ─── Row 3, Cols 2-4: Heroes per troop ───────────────────────────────────
-
-function HeroColumn({ troop, cs, updateRoster, removeRoster }) {
+function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
   const [addHero, setAddHero] = useState("");
-  const maxGen = cs.maxGeneration || MAX_GEN;
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
   const available = HERO_DB.filter(
@@ -324,8 +244,13 @@ function HeroColumn({ troop, cs, updateRoster, removeRoster }) {
   };
 
   return (
-    <Card title={`HEROES — ${troop.toUpperCase()}`} accent={troopColor[troop]}>
-      {/* Add hero */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 4, borderTop: `1px solid ${C.brd}` }}>
+      <div style={{
+        fontFamily: FONT_DISPLAY, fontSize: 9, fontWeight: 700,
+        color: C.txD, letterSpacing: "1px", marginTop: 2,
+      }}>
+        HEROES
+      </div>
       <div style={{ display: "flex", gap: 4 }}>
         <select
           value={addHero}
@@ -349,86 +274,111 @@ function HeroColumn({ troop, cs, updateRoster, removeRoster }) {
           ADD
         </button>
       </div>
-
-      {/* Existing heroes */}
       {ownedForTroop.length === 0 && (
-        <div style={{ padding: 12, textAlign: "center", color: C.txD, fontSize: 10 }}>
+        <div style={{ padding: 8, textAlign: "center", color: C.txD, fontSize: 10 }}>
           No {troop.toLowerCase()} heroes yet.
         </div>
       )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        {ownedForTroop.map(({ name, db, entry }) => (
-          <div key={name} style={{
-            background: C.bg, border: `1px solid ${C.brd}`, borderRadius: 4,
-            padding: 6, display: "flex", flexDirection: "column", gap: 4,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <span style={{ fontWeight: 700, fontSize: 11, color: troopColor[troop] }}>{name}</span>
-                <span style={{ fontSize: 9, color: C.txD, marginLeft: 4 }}>
-                  G{db?.gen}
-                </span>
-              </div>
-              <button
-                onClick={() => removeRoster(name)}
-                style={{
-                  fontSize: 8, color: C.red, background: "none",
-                  border: `1px solid ${C.red}44`, borderRadius: 3,
-                  padding: "1px 5px", cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
+      {ownedForTroop.map(({ name, db, entry }) => (
+        <div key={name} style={{
+          background: C.bg, border: `1px solid ${C.brd}`, borderRadius: 4,
+          padding: 6, display: "flex", flexDirection: "column", gap: 4,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <span style={{ fontWeight: 700, fontSize: 11, color: troopColor[troop] }}>{name}</span>
+              <span style={{ fontSize: 9, color: C.txD, marginLeft: 4 }}>G{db?.gen}</span>
             </div>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <button
+              onClick={() => removeRoster(name)}
+              style={{
+                fontSize: 8, color: C.red, background: "none",
+                border: `1px solid ${C.red}44`, borderRadius: 3,
+                padding: "1px 5px", cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ flex: 0 }}>
+              <div style={{ fontSize: 8, color: C.txD }}>Lv</div>
+              <input
+                type="number" min={1} max={80}
+                value={entry.level || 1}
+                onChange={e => updateRoster(name, "level", Math.min(80, Math.max(1, Number(e.target.value) || 1)))}
+                style={{ width: 40, fontSize: 10, padding: "2px" }}
+              />
+            </div>
+            <div style={{ flex: 0 }}>
+              <div style={{ fontSize: 8, color: C.txD }}>Stars</div>
+              <select
+                value={entry.stars || 0}
+                onChange={e => updateRoster(name, "stars", Number(e.target.value))}
+                style={{ fontSize: 10, width: 56 }}
+              >
+                {STAR_OPTIONS.map(v => <option key={v} value={v}>{formatStars(v)}</option>)}
+              </select>
+            </div>
+            {db?.hasWidget && (
               <div style={{ flex: 0 }}>
-                <div style={{ fontSize: 8, color: C.txD }}>Lv</div>
+                <div style={{ fontSize: 8, color: C.gold }}>Wid</div>
                 <input
-                  type="number" min={1} max={80}
-                  value={entry.level || 1}
-                  onChange={e => updateRoster(name, "level", Math.min(80, Math.max(1, Number(e.target.value) || 1)))}
-                  style={{ width: 40, fontSize: 10, padding: "2px" }}
+                  type="number" min={0} max={10}
+                  value={entry.widgetLv || 0}
+                  onChange={e => updateRoster(name, "widgetLv", Math.min(10, Math.max(0, Number(e.target.value) || 0)))}
+                  style={{ width: 32, fontSize: 10, padding: "2px" }}
                 />
               </div>
-              <div style={{ flex: 0 }}>
-                <div style={{ fontSize: 8, color: C.txD }}>Stars</div>
-                <select
-                  value={entry.stars || 0}
-                  onChange={e => updateRoster(name, "stars", Number(e.target.value))}
-                  style={{ fontSize: 10, width: 56 }}
-                >
-                  {STAR_OPTIONS.map(v => <option key={v} value={v}>{formatStars(v)}</option>)}
-                </select>
+            )}
+            {(db?.expeditionSkills || []).map((skill, si) => (
+              <div key={si} style={{ flex: 0 }}>
+                <div style={{ fontSize: 8, color: C.txD, maxWidth: 36, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {skill.name?.slice(0, 6) || `S${si + 1}`}
+                </div>
+                <input
+                  type="number" min={0} max={5}
+                  value={(entry.skills || [0, 0, 0])[si] || 0}
+                  onChange={e => {
+                    const sk = [...(entry.skills || [0, 0, 0])];
+                    sk[si] = Math.min(5, Math.max(0, Number(e.target.value) || 0));
+                    updateRoster(name, "skills", sk);
+                  }}
+                  style={{ width: 30, fontSize: 10, padding: "2px" }}
+                />
               </div>
-              {db?.hasWidget && (
-                <div style={{ flex: 0 }}>
-                  <div style={{ fontSize: 8, color: C.gold }}>Wid</div>
-                  <input
-                    type="number" min={0} max={10}
-                    value={entry.widgetLv || 0}
-                    onChange={e => updateRoster(name, "widgetLv", Math.min(10, Math.max(0, Number(e.target.value) || 0)))}
-                    style={{ width: 32, fontSize: 10, padding: "2px" }}
-                  />
-                </div>
-              )}
-              {(db?.expeditionSkills || []).map((skill, si) => (
-                <div key={si} style={{ flex: 0 }}>
-                  <div style={{ fontSize: 8, color: C.txD, maxWidth: 36, overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {skill.name?.slice(0, 6) || `S${si + 1}`}
-                  </div>
-                  <input
-                    type="number" min={0} max={5}
-                    value={(entry.skills || [0, 0, 0])[si] || 0}
-                    onChange={e => {
-                      const sk = [...(entry.skills || [0, 0, 0])];
-                      sk[si] = Math.min(5, Math.max(0, Number(e.target.value) || 0));
-                      updateRoster(name, "skills", sk);
-                    }}
-                    style={{ width: 30, fontSize: 10, padding: "2px" }}
-                  />
-                </div>
-              ))}
-            </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Bonus Overview inputs ───────────────────────────────────────────────
+
+function BonusOverviewCard({ scope, cs, numUp }) {
+  const isSquads = scope === "squads";
+  const bo = cs.bonusOverview || {};
+  const values = bo[scope] || {};
+  const accent = isSquads ? C.gold : troopColor[scope];
+  const title = isSquads ? "BONUS — SQUADS" : `BONUS — ${scope.toUpperCase()}`;
+  return (
+    <Card title={title} accent={accent}>
+      <div style={{ fontSize: 9, color: C.txD, marginBottom: 2 }}>
+        Total in-game buff % (research + alliance + gear + charms + pets combined).
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {BONUS_STAT_ORDER.map(s => (
+          <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10, color: C.txD, width: 40 }}>{s}</span>
+            <input
+              type="number"
+              value={values[s] || 0}
+              onChange={e => numUp(`bonusOverview.${scope}.${s}`, e.target.value)}
+              style={{ flex: 1, fontSize: 11, padding: "3px 4px", minWidth: 0 }}
+            />
+            <span style={{ fontSize: 9, color: C.txD }}>%</span>
           </div>
         ))}
       </div>
