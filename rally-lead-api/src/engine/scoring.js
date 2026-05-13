@@ -78,3 +78,17 @@ export function cloneSimState(cs) {
     heroRoster:   JSON.parse(JSON.stringify(cs.heroRoster   || {})),
   };
 }
+
+// Sum any number of ResourceBundles into a new bundle. Used by the pack
+// resolver to compose base + chosen-option contributions, and by the
+// dollar-mode optimizer to accumulate purchases.
+export function mergeBundles(...bundles) {
+  const out = {};
+  for (const b of bundles) {
+    if (!b) continue;
+    for (const [k, v] of Object.entries(b)) {
+      if (typeof v === "number" && v !== 0) out[k] = (out[k] || 0) + v;
+    }
+  }
+  return out;
+}
