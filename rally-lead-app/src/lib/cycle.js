@@ -36,10 +36,15 @@ export function serverDay(now = new Date(), launchDate = KINGDOM_1650_SERVER_DAY
   return Math.floor((now.getTime() - start.getTime()) / MS_PER_DAY) + 1;
 }
 
-// Server-day thresholds at which each hero generation unlocks. Best-guess
-// approximation for Kingdom 1650 — adjust as we confirm the real cadence.
-// At server day 96 (today) this returns 4.
-const GEN_UNLOCK_DAYS = [0, 30, 60, 90, 120, 150];
+// Server-day thresholds at which each hero generation unlocks on Kingdom
+// 1650. Maps confirmed real-world dates:
+//   Gen 1: server day 1   (launch, 2026-02-07)
+//   Gen 2: server day 45  (2026-03-23)
+//   Gen 3: server day 108 (2026-05-25)
+//   Gen 4: server day 192 (2026-08-17)
+// Gen 5+ thresholds will be appended once announced; for now any heroes
+// with gen > 4 in the catalog remain hidden.
+const GEN_UNLOCK_DAYS = [1, 45, 108, 192];
 
 export function maxGenForServerDay(day) {
   if (day == null) return GEN_UNLOCK_DAYS.length;
