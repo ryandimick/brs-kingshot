@@ -7,6 +7,7 @@ import { meRouter } from "./routes/me.js";
 import { profilesRouter } from "./routes/profiles.js";
 import { optimizeRouter } from "./routes/optimize.js";
 import { computeRouter } from "./routes/compute.js";
+import { catalogRouter } from "./routes/catalog.js";
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/me", meRouter);
 app.use("/profiles", profilesRouter);
 app.use("/optimize", optimizeRouter);
 app.use("/compute", computeRouter);
+app.use("/catalog", catalogRouter);
 
 const port = Number(process.env.PORT ?? 3001);
 app.listen(port, () => {
