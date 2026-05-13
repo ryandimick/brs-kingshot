@@ -7,16 +7,8 @@ import { C, FONT_BODY } from "./theme";
 import { Header, TabBar, Footer } from "./components/Layout";
 import { SignInScreen } from "./components/SignInScreen";
 import { CreateProfileScreen } from "./components/CreateProfileScreen";
-import { BonusOverviewTab } from "./components/BonusOverviewTab";
-import { GearTab } from "./components/GearTab";
-import { PetsTab } from "./components/PetsTab";
-import { HeroGearTab } from "./components/HeroGearTab";
-import { HeroRosterTab } from "./components/HeroRosterTab";
-import { AttackRallyTab } from "./components/AttackRallyTab";
-import { GarrisonLeadTab } from "./components/GarrisonLeadTab";
-import { OptimizerTab } from "./components/OptimizerTab";
-import { ScenarioPlannerTab } from "./components/ScenarioPlannerTab";
-import { PacksTab } from "./components/PacksTab";
+import { CharacterSheetTab } from "./components/CharacterSheetTab";
+import { InvestmentTab } from "./components/InvestmentTab";
 import { CounterTab } from "./components/CounterTab";
 
 export default function App() {
@@ -29,18 +21,6 @@ export default function App() {
         <ProfileGate />
       </SignedIn>
     </>
-  );
-}
-
-function DerivedLoading({ loading, error }) {
-  return (
-    <div style={{ padding: 24, textAlign: "center", color: C.txD, fontSize: 12 }}>
-      {error
-        ? <span style={{ color: C.red }}>Failed to compute: {error}</span>
-        : loading
-        ? "Computing..."
-        : "Waiting for character sheet..."}
-    </div>
   );
 }
 
@@ -107,13 +87,9 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
     onSave: profile.saveActive,
   });
   const { cs, dirty, saving, saveError, save, update, numUp, updateRoster, removeRoster, exportState } = state;
-  const [tab, setTab] = useState("bonuses");
+  const [tab, setTab] = useState("sheet");
 
-  const {
-    attackBuffs, attackStatProducts, attackSkillMod, attackOptimalLineup,
-    garrisonBuffs, garrisonStatProducts, garrisonSkillMod, garrisonOptimalLineup,
-    loading: derivedLoading, error: derivedError,
-  } = useDerivedState(cs);
+  const derived = useDerivedState(cs);
 
   return (
     <div style={{ fontFamily: FONT_BODY, background: C.bg, color: C.tx, minHeight: "100vh" }}>
@@ -131,28 +107,33 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
       <TabBar tab={tab} setTab={setTab} />
 
       <div style={{ padding: "12px 14px 20px" }}>
-        {tab === "bonuses" && <BonusOverviewTab cs={cs} numUp={numUp} />}
-        {tab === "gear" && <GearTab cs={cs} update={update} numUp={numUp} />}
-        {tab === "pets" && <PetsTab cs={cs} numUp={numUp} />}
-        {tab === "herogear" && <HeroGearTab cs={cs} numUp={numUp} />}
-        {tab === "roster" && <HeroRosterTab cs={cs} update={update} updateRoster={updateRoster} removeRoster={removeRoster} />}
-        {tab === "attack" && (attackStatProducts ? (
-          <AttackRallyTab cs={cs} update={update} numUp={numUp}
-            totalBuffs={attackBuffs} statProducts={attackStatProducts}
-            skillMod={attackSkillMod} optimalLineup={attackOptimalLineup} />
-        ) : (
-          <DerivedLoading loading={derivedLoading} error={derivedError} />
-        ))}
-        {tab === "garrison" && (garrisonStatProducts ? (
-          <GarrisonLeadTab cs={cs} update={update}
-            totalBuffs={garrisonBuffs} statProducts={garrisonStatProducts}
-            skillMod={garrisonSkillMod} optimalLineup={garrisonOptimalLineup} />
-        ) : (
-          <DerivedLoading loading={derivedLoading} error={derivedError} />
-        ))}
-        {tab === "invest" && <OptimizerTab cs={cs} />}
-        {tab === "planner" && <ScenarioPlannerTab cs={cs} />}
-        {tab === "packs" && <PacksTab cs={cs} />}
+        {tab === "sheet" && (
+          <CharacterSheetTab
+            cs={cs}
+            update={update}
+            numUp={numUp}
+            updateRoster={updateRoster}
+            removeRoster={removeRoster}
+            activeProfileName={profile.activeProfile?.name}
+          />
+        )}
+        {tab === "invest" && (
+          <InvestmentTab
+            cs={cs}
+            update={update}
+            numUp={numUp}
+            attackBuffs={derived.attackBuffs}
+            attackStatProducts={derived.attackStatProducts}
+            attackSkillMod={derived.attackSkillMod}
+            attackOptimalLineup={derived.attackOptimalLineup}
+            garrisonBuffs={derived.garrisonBuffs}
+            garrisonStatProducts={derived.garrisonStatProducts}
+            garrisonSkillMod={derived.garrisonSkillMod}
+            garrisonOptimalLineup={derived.garrisonOptimalLineup}
+            derivedLoading={derived.loading}
+            derivedError={derived.error}
+          />
+        )}
         {tab === "counter" && <CounterTab />}
       </div>
 

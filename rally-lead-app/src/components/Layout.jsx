@@ -3,16 +3,8 @@ import { C, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../theme";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 
 const TABS = [
-  { id: "bonuses", l: "Bonus Overview" },
-  { id: "gear", l: "Gear & Charms" },
-  { id: "pets", l: "Pets" },
-  { id: "herogear", l: "Hero Gear" },
-  { id: "roster", l: "Hero Roster" },
-  { id: "attack", l: "Attack Rally" },
-  { id: "garrison", l: "Garrison Lead" },
-  { id: "invest", l: "Optimal Investment" },
-  { id: "planner", l: "Scenario Planner" },
-  { id: "packs", l: "Packs" },
+  { id: "sheet", l: "Character Sheet" },
+  { id: "invest", l: "Investment" },
   { id: "counter", l: "Counter Search" },
 ];
 
