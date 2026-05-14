@@ -37,7 +37,7 @@ export function CharacterSheetTab({
       display: "grid",
       gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
       gap: 12,
-      alignItems: "start",
+      alignItems: "stretch",
     }}>
       {/* ── Gear row ──────────────────────────── */}
       <GovGearCharmsCard cs={cs} update={update} />
@@ -151,11 +151,16 @@ function GovGearCharmsCard({ cs, update }) {
 function HeroGearAndHeroesCard({ troop, cs, numUp, updateRoster, removeRoster, maxGen }) {
   return (
     <Card title={`${troop.toUpperCase()}`} accent={troopColor[troop]}>
-      <GearPieceGrid troop={troop} cs={cs} numUp={numUp} />
       <HeroList
         troop={troop} cs={cs} maxGen={maxGen}
         updateRoster={updateRoster} removeRoster={removeRoster}
       />
+      <div style={{
+        marginTop: "auto",
+        display: "flex", flexDirection: "column", gap: 8,
+      }}>
+        <GearPieceGrid troop={troop} cs={cs} numUp={numUp} />
+      </div>
     </Card>
   );
 }
@@ -244,10 +249,10 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 4, borderTop: `1px solid ${C.brd}` }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <div style={{
         fontFamily: FONT_DISPLAY, fontSize: 9, fontWeight: 700,
-        color: C.txD, letterSpacing: "1px", marginTop: 2,
+        color: C.txD, letterSpacing: "1px",
       }}>
         HEROES
       </div>
@@ -315,7 +320,7 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
               <select
                 value={entry.stars || 0}
                 onChange={e => updateRoster(name, "stars", Number(e.target.value))}
-                style={{ fontSize: 10, width: 56 }}
+                style={{ fontSize: 10, width: 92 }}
               >
                 {STAR_OPTIONS.map(v => <option key={v} value={v}>{formatStars(v)}</option>)}
               </select>
