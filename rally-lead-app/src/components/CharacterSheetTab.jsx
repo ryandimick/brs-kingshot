@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TROOP_TYPES } from "../data/constants";
 import { GOV_GEAR_SLOTS, GOV_GEAR_TIERS, CHARM_LEVELS, getSetBonus } from "../data/gear-tables";
 import { HERO_DB } from "../data/hero-catalog";
@@ -27,15 +27,34 @@ function formatStars(v) {
   return step > 0 ? `${stars} +${step}` : stars;
 }
 
+function colsForWidth(w) {
+  if (w < 720) return 1;
+  if (w < 1280) return 2;
+  return 4;
+}
+
+function useResponsiveCols() {
+  const [cols, setCols] = useState(() =>
+    typeof window === "undefined" ? 4 : colsForWidth(window.innerWidth)
+  );
+  useEffect(() => {
+    const onResize = () => setCols(colsForWidth(window.innerWidth));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return cols;
+}
+
 export function CharacterSheetTab({
   cs, update, numUp, updateRoster, removeRoster,
 }) {
   const currentMaxGen = useMemo(() => maxGenForServerDay(serverDay()), []);
+  const cols = useResponsiveCols();
 
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
       gap: 12,
       alignItems: "stretch",
     }}>
