@@ -4,6 +4,7 @@ import { ProfileSwitcher } from "./ProfileSwitcher";
 
 const TABS = [
   { id: "sheet", l: "Character Sheet" },
+  { id: "battle", l: "Battle Report" },
   { id: "invest", l: "Investment" },
 ];
 

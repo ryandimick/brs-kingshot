@@ -8,6 +8,7 @@ import { Header, TabBar, Footer } from "./components/Layout";
 import { SignInScreen } from "./components/SignInScreen";
 import { CreateProfileScreen } from "./components/CreateProfileScreen";
 import { CharacterSheetTab } from "./components/CharacterSheetTab";
+import { BattleReportTab } from "./components/BattleReportTab";
 import { InvestmentTab } from "./components/InvestmentTab";
 import { CounterTab } from "./components/CounterTab";
 
@@ -116,23 +117,21 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
             removeRoster={removeRoster}
           />
         )}
-        {tab === "invest" && (
-          <InvestmentTab
+        {tab === "battle" && (
+          <BattleReportTab
             cs={cs}
             update={update}
-            numUp={numUp}
             attackBuffs={derived.attackBuffs}
-            attackStatProducts={derived.attackStatProducts}
             attackSkillMod={derived.attackSkillMod}
             attackOptimalLineup={derived.attackOptimalLineup}
             garrisonBuffs={derived.garrisonBuffs}
-            garrisonStatProducts={derived.garrisonStatProducts}
             garrisonSkillMod={derived.garrisonSkillMod}
             garrisonOptimalLineup={derived.garrisonOptimalLineup}
             derivedLoading={derived.loading}
             derivedError={derived.error}
           />
         )}
+        {tab === "invest" && <InvestmentTab cs={cs} />}
         {tab === "counter" && <CounterTab />}
       </div>
 
