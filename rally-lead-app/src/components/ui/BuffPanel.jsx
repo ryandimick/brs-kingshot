@@ -12,22 +12,36 @@ const STAT_ORDER = [
   { key: "HP",   label: "Health" },
 ];
 
-export function BuffPanel({ totalBuffs, skillMod, scenario = "Attack Rally", squadMultiplier = 0 }) {
-  const factor = 1 + (squadMultiplier || 0) / 100;
+// Battle Report buff model (matches in-game UI):
+//   displayed_pct = additive_sum × (1 + widget_skill_pct/100) × (1 + squad_pct/100)
+// The additive sum is everything except the widget exclusive skill; the
+// widget skill and squad buff scale the displayed percentage directly
+// rather than compounding the (1 + pct/100) effective-stat factor.
+export function BuffPanel({ breakdown, skillMod, scenario = "Attack Rally", squadMultiplier = 0 }) {
+  const additiveByTroop = breakdown?.additive || {};
+  const widgetSkillPct = breakdown?.widgetSkillPct || {};
+  const squadPct = squadMultiplier || 0;
   const rows = [];
   for (const troop of TROOP_TYPES) {
     for (const { key, label } of STAT_ORDER) {
-      const additive = totalBuffs[troop]?.[key] || 0;
-      const val = squadMultiplier > 0
-        ? ((1 + additive / 100) * factor - 1) * 100
-        : additive;
+      const additive = additiveByTroop[troop]?.[key] || 0;
+      const wsFactor = 1 + (widgetSkillPct[key] || 0) / 100;
+      const sqFactor = 1 + squadPct / 100;
+      const val = additive * wsFactor * sqFactor;
       rows.push({ troop, key, label, val });
     }
   }
 
+  const headerNotes = [];
+  const activeWidgetStats = ["ATK", "DEF", "Leth", "HP"].filter(s => (widgetSkillPct[s] || 0) > 0);
+  if (activeWidgetStats.length) {
+    headerNotes.push(activeWidgetStats.map(s => `+${widgetSkillPct[s]}% ${s}`).join(", ") + " widget skill");
+  }
+  if (squadPct > 0) headerNotes.push(`+${squadPct}% squad`);
+
   return (
     <div>
-      <Lbl>Stat Bonuses ({scenario}{squadMultiplier > 0 ? ` — +${squadMultiplier}% squad applied` : ""})</Lbl>
+      <Lbl>Stat Bonuses ({scenario}{headerNotes.length ? ` — ${headerNotes.join(", ")} applied` : ""})</Lbl>
       <div style={{
         background: C.s1, border: `1px solid ${C.brd}`,
         borderRadius: 8, overflow: "hidden", marginBottom: 14,

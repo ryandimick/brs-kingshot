@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireSession } from "../middleware/auth.js";
-import { computeAttackBuffs, computeGarrisonBuffs } from "../engine/buffs.js";
+import {
+  computeAttackBuffs, computeGarrisonBuffs,
+  computeAttackBuffBreakdown, computeGarrisonBuffBreakdown,
+} from "../engine/buffs.js";
 import { computeStatProducts, computeSkillMod, optimizeLineup } from "../engine/combat.js";
 
 export const computeRouter = Router();
@@ -25,6 +28,8 @@ computeRouter.post("/state", (req, res) => {
 
   const attackBuffs   = computeAttackBuffs(cs);
   const garrisonBuffs = computeGarrisonBuffs(cs);
+  const attackBuffsBreakdown   = computeAttackBuffBreakdown(cs);
+  const garrisonBuffsBreakdown = computeGarrisonBuffBreakdown(cs);
   const attackStatProducts   = computeStatProducts(attackBuffs, cs);
   const garrisonStatProducts = computeStatProducts(garrisonBuffs, cs);
   const attackSkillMod = computeSkillMod(
@@ -44,6 +49,8 @@ computeRouter.post("/state", (req, res) => {
   res.json({
     attackBuffs,
     garrisonBuffs,
+    attackBuffsBreakdown,
+    garrisonBuffsBreakdown,
     attackStatProducts,
     garrisonStatProducts,
     attackSkillMod,

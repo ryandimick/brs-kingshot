@@ -17,8 +17,8 @@ const lineupsEqual = (a, b) =>
 
 export function BattleReportTab({
   cs, update,
-  attackBuffs, attackOptimalLineup,
-  garrisonBuffs, garrisonOptimalLineup,
+  attackBuffsBreakdown, attackOptimalLineup,
+  garrisonBuffsBreakdown, garrisonOptimalLineup,
   derivedLoading, derivedError,
 }) {
   const [mode, setMode] = useState("attack");
@@ -52,7 +52,7 @@ export function BattleReportTab({
           scenario="attack"
           lineup={cs.attackRally?.selectedHeroes || ["", "", ""]}
           optimal={attackOptimalLineup}
-          buffs={attackBuffs}
+          breakdown={attackBuffsBreakdown}
           squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
@@ -64,7 +64,7 @@ export function BattleReportTab({
           scenario="garrison"
           lineup={cs.garrisonLead?.selectedHeroes || ["", "", ""]}
           optimal={garrisonOptimalLineup}
-          buffs={garrisonBuffs}
+          breakdown={garrisonBuffsBreakdown}
           squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
@@ -75,8 +75,8 @@ export function BattleReportTab({
         <CustomReport
           cs={cs}
           update={update}
-          attackBuffs={attackBuffs}
-          garrisonBuffs={garrisonBuffs}
+          attackBuffsBreakdown={attackBuffsBreakdown}
+          garrisonBuffsBreakdown={garrisonBuffsBreakdown}
           squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
@@ -139,21 +139,21 @@ function BuffsSelector({ value, onChange }) {
   );
 }
 
-function AutoReport({ scenario, lineup, optimal, buffs, squadMultiplier, loading, error }) {
+function AutoReport({ scenario, lineup, optimal, breakdown, squadMultiplier, loading, error }) {
   const scenarioLabel = scenario === "attack" ? "Attack Rally" : "Garrison";
-  const ready = buffs && lineupsEqual(lineup, optimal || []);
+  const ready = breakdown && lineupsEqual(lineup, optimal || []);
 
   return (
     <div>
       <LineupSummary lineup={lineup} title="Auto-selected lineup" />
       {!ready
         ? <DerivedFallback loading={loading} error={error} />
-        : <BuffPanel totalBuffs={buffs} scenario={scenarioLabel} squadMultiplier={squadMultiplier} />}
+        : <BuffPanel breakdown={breakdown} scenario={scenarioLabel} squadMultiplier={squadMultiplier} />}
     </div>
   );
 }
 
-function CustomReport({ cs, update, attackBuffs, garrisonBuffs, squadMultiplier, loading, error }) {
+function CustomReport({ cs, update, attackBuffsBreakdown, garrisonBuffsBreakdown, squadMultiplier, loading, error }) {
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
 
@@ -183,7 +183,7 @@ function CustomReport({ cs, update, attackBuffs, garrisonBuffs, squadMultiplier,
     : null;
   const matchesSubmitted = submitted && lineupsEqual(liveLineup, submittedLineup);
 
-  const buffs = submitted?.scenario === "attack" ? attackBuffs : garrisonBuffs;
+  const breakdown = submitted?.scenario === "attack" ? attackBuffsBreakdown : garrisonBuffsBreakdown;
   const scenarioLabel = submitted?.scenario === "attack" ? "Attack Rally" : "Garrison";
 
   return (
@@ -255,8 +255,8 @@ function CustomReport({ cs, update, attackBuffs, garrisonBuffs, squadMultiplier,
       </div>
 
       {submitted && (
-        matchesSubmitted && buffs
-          ? <BuffPanel totalBuffs={buffs} scenario={`Custom (${scenarioLabel})`} squadMultiplier={squadMultiplier} />
+        matchesSubmitted && breakdown
+          ? <BuffPanel breakdown={breakdown} scenario={`Custom (${scenarioLabel})`} squadMultiplier={squadMultiplier} />
           : <DerivedFallback loading={loading} error={error} />
       )}
     </div>

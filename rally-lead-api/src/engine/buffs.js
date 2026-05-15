@@ -68,3 +68,69 @@ export function computeGarrisonBuffs(cs) {
     []
   );
 }
+
+// Battle Report breakdown: separates the additive sum (BO + hero gear + widget
+// expedition + talents + flat skills) from the widget exclusive skill, which
+// is multiplicative-on-percentage in the in-game model:
+//   displayed_pct = additive × (1 + widgetSkillPct/100)
+// Widget skills are squad-wide so widgetSkillPct is a single per-stat object
+// (not per-troop). The legacy computeBuffsForLineup folds widgetSkill back
+// into additive and is kept for the optimizer / stat-product math.
+export function computeBuffBreakdownForLineup(cs, selectedHeroes, widgetMode, joinerSlots = []) {
+  const additive = {};
+  const bo = cs.bonusOverview || {};
+  const boSquads = bo.squads || {};
+
+  const heroGearBuffs = computeHeroGearBuffs(cs.heroGear || {});
+  const widgetBuffs = computeWidgetExpeditionBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
+  const widgetSkillBuffs = widgetMode === "rally"
+    ? computeWidgetRallySkill(selectedHeroes, cs.heroRoster || {}, HERO_DB)
+    : computeWidgetDefenderSkill(selectedHeroes, cs.heroRoster || {}, HERO_DB);
+  const talentBuffs = computeTalentBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
+  const expBuffs = computeExpeditionBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
+  const skillFlat = computeSkillFlatBuffs(selectedHeroes, cs.heroRoster || {}, joinerSlots);
+
+  for (const t of TROOP_TYPES) {
+    additive[t] = { ATK: 0, Leth: 0, HP: 0, DEF: 0 };
+    for (const s of STAT_NAMES) {
+      additive[t][s] += (boSquads[s] || 0) + (bo[t]?.[s] || 0);
+    }
+    const hg = heroGearBuffs[t] || { ATK: 0, DEF: 0, Leth: 0, HP: 0 };
+    const wb = widgetBuffs[t] || { Leth: 0, HP: 0 };
+    const eb = expBuffs[t] || { ATK: 0, DEF: 0 };
+
+    // Widget exclusive skill is intentionally EXCLUDED here.
+    additive[t].ATK  += talentBuffs.ATK  + hg.ATK  + eb.ATK  + skillFlat.ATK;
+    additive[t].DEF  += talentBuffs.DEF  + hg.DEF  + eb.DEF  + skillFlat.DEF;
+    additive[t].Leth += talentBuffs.Leth + hg.Leth + wb.Leth + skillFlat.Leth;
+    additive[t].HP   += talentBuffs.HP   + hg.HP   + wb.HP   + skillFlat.HP;
+  }
+
+  return {
+    additive,
+    widgetSkillPct: {
+      ATK:  widgetSkillBuffs.ATK  || 0,
+      DEF:  widgetSkillBuffs.DEF  || 0,
+      Leth: widgetSkillBuffs.Leth || 0,
+      HP:   widgetSkillBuffs.HP   || 0,
+    },
+  };
+}
+
+export function computeAttackBuffBreakdown(cs) {
+  return computeBuffBreakdownForLineup(
+    cs,
+    cs.attackRally?.selectedHeroes || [],
+    "rally",
+    cs.attackRally?.joinerSlots || []
+  );
+}
+
+export function computeGarrisonBuffBreakdown(cs) {
+  return computeBuffBreakdownForLineup(
+    cs,
+    cs.garrisonLead?.selectedHeroes || [],
+    "defender",
+    []
+  );
+}

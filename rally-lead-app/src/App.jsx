@@ -121,9 +121,9 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
           <BattleReportTab
             cs={cs}
             update={update}
-            attackBuffs={derived.attackBuffs}
+            attackBuffsBreakdown={derived.attackBuffsBreakdown}
             attackOptimalLineup={derived.attackOptimalLineup}
-            garrisonBuffs={derived.garrisonBuffs}
+            garrisonBuffsBreakdown={derived.garrisonBuffsBreakdown}
             garrisonOptimalLineup={derived.garrisonOptimalLineup}
             derivedLoading={derived.loading}
             derivedError={derived.error}
