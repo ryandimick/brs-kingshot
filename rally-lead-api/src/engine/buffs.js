@@ -10,45 +10,27 @@ import {
 } from "../data/hero-tables.js";
 import { computeSkillFlatBuffs } from "./combat.js";
 
-// Notes on layering:
-//   - bonusOverview is the user's manual snapshot of the in-game Bonus Overview
-//     screen (Research + Alliance Tech + Outposts + Skins + Gov Gear + Charms + Pets).
-//     Pets are inside that total, so we do NOT add pets again here.
-//   - Hero gear (enhancement Leth/HP and imbuement ATK/DEF) is NOT included in
-//     the in-game Bonus Overview panel, so the app adds it on top.
-//   - Hero expeditionBonus, widget expedition stats, widget skills, talents, and
-//     flat/conditional DamageUp/DefenseUp skills are lineup-dependent and are
-//     added on top of bonusOverview.
+// Returns the flattened in-game DISPLAYED buff % per troop / per stat:
+//   displayed = additive_sum × (1 + widget_skill_pct/100)
+// where additive_sum = Bonus Overview (Research + Alliance Tech + Outposts +
+// Skins + Gov Gear + Charms + Pets, all already inside the in-game BO total)
+// + hero gear (enhancement Leth/HP + imbuement ATK/DEF, NOT in the in-game BO)
+// + hero widget expedition stats + talents + flat/conditional DamageUp/DefenseUp
+// skills. The widget exclusive skill is applied multiplicatively on the
+// percentage, not folded into the additive bucket — matches the in-game UI.
+// Consumers: stat products, lineup optimizer, investment scoring.
 export function computeBuffsForLineup(cs, selectedHeroes, widgetMode, joinerSlots = []) {
-  const totals = {};
-  const bo = cs.bonusOverview || {};
-  const boSquads = bo.squads || {};
-
-  const heroGearBuffs = computeHeroGearBuffs(cs.heroGear || {});
-  const widgetBuffs = computeWidgetExpeditionBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
-  const widgetSkillBuffs = widgetMode === "rally"
-    ? computeWidgetRallySkill(selectedHeroes, cs.heroRoster || {}, HERO_DB)
-    : computeWidgetDefenderSkill(selectedHeroes, cs.heroRoster || {}, HERO_DB);
-  const talentBuffs = computeTalentBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
-  const expBuffs = computeExpeditionBuffs(selectedHeroes, cs.heroRoster || {}, HERO_DB);
-  const skillFlat = computeSkillFlatBuffs(selectedHeroes, cs.heroRoster || {}, joinerSlots);
-
+  const { additive, widgetSkillPct } = computeBuffBreakdownForLineup(cs, selectedHeroes, widgetMode, joinerSlots);
+  const result = {};
   for (const t of TROOP_TYPES) {
-    totals[t] = { ATK: 0, Leth: 0, HP: 0, DEF: 0 };
+    result[t] = { ATK: 0, Leth: 0, HP: 0, DEF: 0 };
     for (const s of STAT_NAMES) {
-      totals[t][s] += (boSquads[s] || 0) + (bo[t]?.[s] || 0);
+      const a = additive[t]?.[s] || 0;
+      const ws = widgetSkillPct[s] || 0;
+      result[t][s] = a * (1 + ws / 100);
     }
-    const hg = heroGearBuffs[t] || { ATK: 0, DEF: 0, Leth: 0, HP: 0 };
-    const wb = widgetBuffs[t] || { Leth: 0, HP: 0 };
-    const eb = expBuffs[t] || { ATK: 0, DEF: 0 };
-
-    // Widget skills are squad-wide (apply to every troop), routed by desc.
-    totals[t].ATK  += talentBuffs.ATK  + hg.ATK  + eb.ATK  + widgetSkillBuffs.ATK  + skillFlat.ATK;
-    totals[t].DEF  += talentBuffs.DEF  + hg.DEF  + eb.DEF  + widgetSkillBuffs.DEF  + skillFlat.DEF;
-    totals[t].Leth += talentBuffs.Leth + hg.Leth + wb.Leth + widgetSkillBuffs.Leth + skillFlat.Leth;
-    totals[t].HP   += talentBuffs.HP   + hg.HP   + wb.HP   + widgetSkillBuffs.HP   + skillFlat.HP;
   }
-  return totals;
+  return result;
 }
 
 export function computeAttackBuffs(cs) {
@@ -69,13 +51,13 @@ export function computeGarrisonBuffs(cs) {
   );
 }
 
-// Battle Report breakdown: separates the additive sum (BO + hero gear + widget
-// expedition + talents + flat skills) from the widget exclusive skill, which
-// is multiplicative-on-percentage in the in-game model:
-//   displayed_pct = additive × (1 + widgetSkillPct/100)
+// Battle Report breakdown: returns the additive sum and the widget exclusive
+// skill as separate components so the UI can apply additional multiplicative
+// layers (e.g. the +20% squad-buff toggle):
+//   displayed_pct = additive × (1 + widgetSkillPct/100) × (1 + squad/100)
 // Widget skills are squad-wide so widgetSkillPct is a single per-stat object
-// (not per-troop). The legacy computeBuffsForLineup folds widgetSkill back
-// into additive and is kept for the optimizer / stat-product math.
+// (not per-troop). The flattened computeBuffsForLineup above is the same
+// formula minus the squad toggle, and is what stat products / optimizer use.
 export function computeBuffBreakdownForLineup(cs, selectedHeroes, widgetMode, joinerSlots = []) {
   const additive = {};
   const bo = cs.bonusOverview || {};
