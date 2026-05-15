@@ -50,6 +50,7 @@ export function CharacterSheetTab({
 }) {
   const currentMaxGen = useMemo(() => maxGenForServerDay(serverDay()), []);
   const cols = useResponsiveCols();
+  const compact = cols < 4;
 
   return (
     <div style={{
@@ -59,19 +60,19 @@ export function CharacterSheetTab({
       alignItems: "stretch",
     }}>
       {/* ── Gear row ──────────────────────────── */}
-      <GovGearCharmsCard cs={cs} update={update} />
+      <GovGearCharmsCard cs={cs} update={update} compact={compact} />
       {TROOP_ORDER.map(t => (
         <HeroGearAndHeroesCard
-          key={t} troop={t} cs={cs}
+          key={t} troop={t} cs={cs} compact={compact}
           numUp={numUp} updateRoster={updateRoster} removeRoster={removeRoster}
           maxGen={currentMaxGen}
         />
       ))}
 
       {/* ── Bonus Overview row ────────────────── */}
-      <BonusOverviewCard scope="squads" cs={cs} numUp={numUp} />
+      <BonusOverviewCard scope="squads" cs={cs} numUp={numUp} compact={compact} />
       {TROOP_ORDER.map(t => (
-        <BonusOverviewCard key={t} scope={t} cs={cs} numUp={numUp} />
+        <BonusOverviewCard key={t} scope={t} cs={cs} numUp={numUp} compact={compact} />
       ))}
     </div>
   );
@@ -98,7 +99,7 @@ function Card({ title, accent, children }) {
 
 // ─── Gov Gear + Charms ────────────────────────────────────────────────────
 
-function GovGearCharmsCard({ cs, update }) {
+function GovGearCharmsCard({ cs, update, compact }) {
   const slots = cs.govGearSlots || {};
   const sb = getSetBonus(slots);
 
@@ -112,20 +113,23 @@ function GovGearCharmsCard({ cs, update }) {
           return (
             <div key={slot.id} style={{
               background: C.bg, border: `1px solid ${tierIdx > 0 ? tierColor + "44" : C.brd}`,
-              borderRadius: 4, padding: 6, textAlign: "center", minWidth: 0,
+              borderRadius: 4, padding: compact ? 8 : 6, textAlign: "center", minWidth: 0,
             }}>
-              <div style={{ fontSize: 14, marginBottom: 2 }}>{slot.icon}</div>
-              <div style={{ fontSize: 9, color: C.txD, marginBottom: 3 }}>{slot.name}</div>
+              <div style={{ fontSize: compact ? 18 : 14, marginBottom: 2 }}>{slot.icon}</div>
+              <div style={{ fontSize: compact ? 11 : 9, color: C.txD, marginBottom: 3 }}>{slot.name}</div>
               <select
                 value={tierIdx}
                 onChange={e => update(`govGearSlots.${slot.id}`, Number(e.target.value))}
-                style={{ width: "100%", fontSize: 9, padding: "2px", color: tierColor, minWidth: 0 }}
+                style={{
+                  width: "100%", color: tierColor, minWidth: 0,
+                  fontSize: compact ? 12 : 9, padding: compact ? "5px 4px" : "2px",
+                }}
               >
                 {GOV_GEAR_TIERS.map((t, i) => (
                   <option key={i} value={i}>{t.label}</option>
                 ))}
               </select>
-              <div style={{ marginTop: 4, display: "flex", gap: 2 }}>
+              <div style={{ marginTop: compact ? 6 : 4, display: "flex", gap: compact ? 3 : 2 }}>
                 {[0, 1, 2].map(ci => (
                   <select
                     key={ci}
@@ -138,7 +142,10 @@ function GovGearCharmsCard({ cs, update }) {
                         update(`charmLevels.${tt}.${slot.id}`, arr);
                       }
                     }}
-                    style={{ flex: 1, fontSize: 8, padding: "1px", minWidth: 0 }}
+                    style={{
+                      flex: 1, minWidth: 0,
+                      fontSize: compact ? 11 : 8, padding: compact ? "4px 2px" : "1px",
+                    }}
                   >
                     {CHARM_LEVELS.map((cl, i) => (
                       <option key={i} value={i}>{cl.label}</option>
@@ -167,24 +174,24 @@ function GovGearCharmsCard({ cs, update }) {
 
 // ─── Hero Gear + Heroes (one combined card per troop) ────────────────────
 
-function HeroGearAndHeroesCard({ troop, cs, numUp, updateRoster, removeRoster, maxGen }) {
+function HeroGearAndHeroesCard({ troop, cs, numUp, updateRoster, removeRoster, maxGen, compact }) {
   return (
     <Card title={`${troop.toUpperCase()}`} accent={troopColor[troop]}>
       <HeroList
-        troop={troop} cs={cs} maxGen={maxGen}
+        troop={troop} cs={cs} maxGen={maxGen} compact={compact}
         updateRoster={updateRoster} removeRoster={removeRoster}
       />
       <div style={{
         marginTop: "auto",
         display: "flex", flexDirection: "column", gap: 8,
       }}>
-        <GearPieceGrid troop={troop} cs={cs} numUp={numUp} />
+        <GearPieceGrid troop={troop} cs={cs} numUp={numUp} compact={compact} />
       </div>
     </Card>
   );
 }
 
-function GearPieceGrid({ troop, cs, numUp }) {
+function GearPieceGrid({ troop, cs, numUp, compact }) {
   const gearSet = cs.heroGear?.[troop] || {};
   let lethTotal = 0, hpTotal = 0;
   for (const [pid, stat] of Object.entries(GEAR_PIECE_STAT)) {
@@ -203,33 +210,44 @@ function GearPieceGrid({ troop, cs, numUp }) {
             <div key={pieceId} style={{
               position: "relative",
               background: C.bg, border: `1px solid ${C.brd}`,
-              borderRadius: 4, padding: 6, minWidth: 0, minHeight: 92,
+              borderRadius: 4, padding: compact ? 8 : 6,
+              minWidth: 0, minHeight: compact ? 108 : 92,
             }}>
-              <div style={{ textAlign: "center", marginTop: 14 }}>
-                <div style={{ fontSize: 18 }}>{PIECE_ICONS[pieceId]}</div>
-                <div style={{ fontSize: 9, color: C.txD, marginTop: 2 }}>
+              <div style={{ textAlign: "center", marginTop: compact ? 18 : 14 }}>
+                <div style={{ fontSize: compact ? 22 : 18 }}>{PIECE_ICONS[pieceId]}</div>
+                <div style={{ fontSize: compact ? 11 : 9, color: C.txD, marginTop: 2 }}>
                   {PIECE_NAMES[pieceId]}
                 </div>
-                <div style={{ fontSize: 8, color: statColor, fontWeight: 700, marginTop: 1, letterSpacing: "0.5px" }}>
+                <div style={{ fontSize: compact ? 10 : 8, color: statColor, fontWeight: 700, marginTop: 1, letterSpacing: "0.5px" }}>
                   {stat.toUpperCase()}
                 </div>
               </div>
               <div style={{ position: "absolute", top: 4, right: 4, textAlign: "center" }}>
-                <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>ENH</div>
+                <div style={{ fontSize: compact ? 9 : 7, color: C.txD, letterSpacing: "0.5px" }}>ENH</div>
                 <input
                   type="number" min={0} max={200}
                   value={piece.enh}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.enh`, e.target.value)}
-                  style={{ width: 38, fontSize: 10, padding: "1px 2px", textAlign: "center", fontFamily: FONT_MONO }}
+                  style={{
+                    textAlign: "center", fontFamily: FONT_MONO,
+                    width: compact ? 56 : 38,
+                    fontSize: compact ? 13 : 10,
+                    padding: compact ? "4px 6px" : "1px 2px",
+                  }}
                 />
               </div>
               <div style={{ position: "absolute", bottom: 4, right: 4, textAlign: "center" }}>
-                <div style={{ fontSize: 7, color: C.txD, letterSpacing: "0.5px" }}>MAST</div>
+                <div style={{ fontSize: compact ? 9 : 7, color: C.txD, letterSpacing: "0.5px" }}>MAST</div>
                 <input
                   type="number" min={0} max={20}
                   value={piece.mast}
                   onChange={e => numUp(`heroGear.${troop}.${pieceId}.mast`, e.target.value)}
-                  style={{ width: 38, fontSize: 10, padding: "1px 2px", textAlign: "center", fontFamily: FONT_MONO }}
+                  style={{
+                    textAlign: "center", fontFamily: FONT_MONO,
+                    width: compact ? 56 : 38,
+                    fontSize: compact ? 13 : 10,
+                    padding: compact ? "4px 6px" : "1px 2px",
+                  }}
                 />
               </div>
             </div>
@@ -237,8 +255,10 @@ function GearPieceGrid({ troop, cs, numUp }) {
         })}
       </div>
       <div style={{
-        padding: "5px 8px", background: C.bg, borderRadius: 4,
-        display: "flex", justifyContent: "space-around", fontFamily: FONT_MONO, fontSize: 10,
+        padding: compact ? "7px 10px" : "5px 8px",
+        background: C.bg, borderRadius: 4,
+        display: "flex", justifyContent: "space-around",
+        fontFamily: FONT_MONO, fontSize: compact ? 12 : 10,
       }}>
         <span style={{ color: C.grn }}>Leth {lethTotal.toFixed(1)}%</span>
         <span style={{ color: C.blu }}>HP {hpTotal.toFixed(1)}%</span>
@@ -247,7 +267,7 @@ function GearPieceGrid({ troop, cs, numUp }) {
   );
 }
 
-function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
+function HeroList({ troop, cs, maxGen, updateRoster, removeRoster, compact }) {
   const [addHero, setAddHero] = useState("");
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
@@ -268,18 +288,22 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: compact ? 7 : 5 }}>
       <div style={{
-        fontFamily: FONT_DISPLAY, fontSize: 9, fontWeight: 700,
+        fontFamily: FONT_DISPLAY, fontSize: compact ? 11 : 9, fontWeight: 700,
         color: C.txD, letterSpacing: "1px",
       }}>
         HEROES
       </div>
-      <div style={{ display: "flex", gap: 4 }}>
+      <div style={{ display: "flex", gap: compact ? 6 : 4 }}>
         <select
           value={addHero}
           onChange={e => setAddHero(e.target.value)}
-          style={{ flex: 1, fontSize: 10, minWidth: 0 }}
+          style={{
+            flex: 1, minWidth: 0,
+            fontSize: compact ? 13 : 10,
+            padding: compact ? "6px 8px" : undefined,
+          }}
         >
           <option value="">+ add…</option>
           {available.map(h => (
@@ -290,7 +314,9 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
           onClick={handleAdd}
           disabled={!addHero}
           style={{
-            fontFamily: FONT_DISPLAY, fontSize: 9, fontWeight: 700, padding: "3px 10px",
+            fontFamily: FONT_DISPLAY, fontWeight: 700,
+            fontSize: compact ? 12 : 9,
+            padding: compact ? "7px 14px" : "3px 10px",
             borderRadius: 3, border: "none", cursor: addHero ? "pointer" : "default",
             background: addHero ? C.gold : C.s2, color: addHero ? C.bg : C.txD,
           }}
@@ -299,65 +325,82 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
         </button>
       </div>
       {ownedForTroop.length === 0 && (
-        <div style={{ padding: 8, textAlign: "center", color: C.txD, fontSize: 10 }}>
+        <div style={{ padding: compact ? 10 : 8, textAlign: "center", color: C.txD, fontSize: compact ? 12 : 10 }}>
           No {troop.toLowerCase()} heroes yet.
         </div>
       )}
       {ownedForTroop.map(({ name, db, entry }) => (
         <div key={name} style={{
           background: C.bg, border: `1px solid ${C.brd}`, borderRadius: 4,
-          padding: 6, display: "flex", flexDirection: "column", gap: 4,
+          padding: compact ? 8 : 6, display: "flex", flexDirection: "column", gap: compact ? 6 : 4,
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <span style={{ fontWeight: 700, fontSize: 11, color: troopColor[troop] }}>{name}</span>
-              <span style={{ fontSize: 9, color: C.txD, marginLeft: 4 }}>G{db?.gen}</span>
+              <span style={{ fontWeight: 700, fontSize: compact ? 13 : 11, color: troopColor[troop] }}>{name}</span>
+              <span style={{ fontSize: compact ? 11 : 9, color: C.txD, marginLeft: 4 }}>G{db?.gen}</span>
             </div>
             <button
               onClick={() => removeRoster(name)}
               style={{
-                fontSize: 8, color: C.red, background: "none",
-                border: `1px solid ${C.red}44`, borderRadius: 3,
-                padding: "1px 5px", cursor: "pointer",
+                color: C.red, background: "none",
+                border: `1px solid ${C.red}44`, borderRadius: 3, cursor: "pointer",
+                fontSize: compact ? 14 : 8,
+                padding: compact ? "3px 9px" : "1px 5px",
+                lineHeight: 1,
               }}
             >
               ×
             </button>
           </div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ display: "flex", gap: compact ? 7 : 4, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: 0 }}>
-              <div style={{ fontSize: 8, color: C.txD }}>Lv</div>
+              <div style={{ fontSize: compact ? 10 : 8, color: C.txD }}>Lv</div>
               <input
                 type="number" min={1} max={80}
                 value={entry.level || 1}
                 onChange={e => updateRoster(name, "level", Math.min(80, Math.max(1, Number(e.target.value) || 1)))}
-                style={{ width: 40, fontSize: 10, padding: "2px" }}
+                style={{
+                  width: compact ? 56 : 40,
+                  fontSize: compact ? 13 : 10,
+                  padding: compact ? "5px 6px" : "2px",
+                }}
               />
             </div>
             <div style={{ flex: 0 }}>
-              <div style={{ fontSize: 8, color: C.txD }}>Stars</div>
+              <div style={{ fontSize: compact ? 10 : 8, color: C.txD }}>Stars</div>
               <select
                 value={entry.stars || 0}
                 onChange={e => updateRoster(name, "stars", Number(e.target.value))}
-                style={{ fontSize: 10, width: 92 }}
+                style={{
+                  width: compact ? 112 : 92,
+                  fontSize: compact ? 12 : 10,
+                  padding: compact ? "5px 6px" : undefined,
+                }}
               >
                 {STAR_OPTIONS.map(v => <option key={v} value={v}>{formatStars(v)}</option>)}
               </select>
             </div>
             {db?.hasWidget && (
               <div style={{ flex: 0 }}>
-                <div style={{ fontSize: 8, color: C.gold }}>Wid</div>
+                <div style={{ fontSize: compact ? 10 : 8, color: C.gold }}>Wid</div>
                 <input
                   type="number" min={0} max={10}
                   value={entry.widgetLv || 0}
                   onChange={e => updateRoster(name, "widgetLv", Math.min(10, Math.max(0, Number(e.target.value) || 0)))}
-                  style={{ width: 32, fontSize: 10, padding: "2px" }}
+                  style={{
+                    width: compact ? 48 : 32,
+                    fontSize: compact ? 13 : 10,
+                    padding: compact ? "5px 6px" : "2px",
+                  }}
                 />
               </div>
             )}
             {(db?.expeditionSkills || []).map((skill, si) => (
               <div key={si} style={{ flex: 0 }}>
-                <div style={{ fontSize: 8, color: C.txD, maxWidth: 36, overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{
+                  fontSize: compact ? 10 : 8, color: C.txD,
+                  maxWidth: compact ? 50 : 36, overflow: "hidden", textOverflow: "ellipsis",
+                }}>
                   {skill.name?.slice(0, 6) || `S${si + 1}`}
                 </div>
                 <input
@@ -368,7 +411,11 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
                     sk[si] = Math.min(5, Math.max(0, Number(e.target.value) || 0));
                     updateRoster(name, "skills", sk);
                   }}
-                  style={{ width: 30, fontSize: 10, padding: "2px" }}
+                  style={{
+                    width: compact ? 44 : 30,
+                    fontSize: compact ? 13 : 10,
+                    padding: compact ? "5px 6px" : "2px",
+                  }}
                 />
               </div>
             ))}
@@ -381,7 +428,7 @@ function HeroList({ troop, cs, maxGen, updateRoster, removeRoster }) {
 
 // ─── Bonus Overview inputs ───────────────────────────────────────────────
 
-function BonusOverviewCard({ scope, cs, numUp }) {
+function BonusOverviewCard({ scope, cs, numUp, compact }) {
   const isSquads = scope === "squads";
   const bo = cs.bonusOverview || {};
   const values = bo[scope] || {};
@@ -389,20 +436,24 @@ function BonusOverviewCard({ scope, cs, numUp }) {
   const title = isSquads ? "BONUS — SQUADS" : `BONUS — ${scope.toUpperCase()}`;
   return (
     <Card title={title} accent={accent}>
-      <div style={{ fontSize: 9, color: C.txD, marginBottom: 2 }}>
+      <div style={{ fontSize: compact ? 11 : 9, color: C.txD, marginBottom: 2 }}>
         Total in-game buff % (research + alliance + gear + charms + pets combined).
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: compact ? 6 : 4 }}>
         {BONUS_STAT_ORDER.map(s => (
-          <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: C.txD, width: 40 }}>{s}</span>
+          <div key={s} style={{ display: "flex", alignItems: "center", gap: compact ? 8 : 6 }}>
+            <span style={{ fontSize: compact ? 12 : 10, color: C.txD, width: compact ? 48 : 40 }}>{s}</span>
             <input
               type="number"
               value={values[s] || 0}
               onChange={e => numUp(`bonusOverview.${scope}.${s}`, e.target.value)}
-              style={{ flex: 1, fontSize: 11, padding: "3px 4px", minWidth: 0 }}
+              style={{
+                flex: 1, minWidth: 0,
+                fontSize: compact ? 14 : 11,
+                padding: compact ? "6px 8px" : "3px 4px",
+              }}
             />
-            <span style={{ fontSize: 9, color: C.txD }}>%</span>
+            <span style={{ fontSize: compact ? 11 : 9, color: C.txD }}>%</span>
           </div>
         ))}
       </div>
