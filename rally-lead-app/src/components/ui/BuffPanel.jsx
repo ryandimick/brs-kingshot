@@ -12,17 +12,22 @@ const STAT_ORDER = [
   { key: "HP",   label: "Health" },
 ];
 
-export function BuffPanel({ totalBuffs, skillMod, scenario = "Attack Rally" }) {
+export function BuffPanel({ totalBuffs, skillMod, scenario = "Attack Rally", squadMultiplier = 0 }) {
+  const factor = 1 + (squadMultiplier || 0) / 100;
   const rows = [];
   for (const troop of TROOP_TYPES) {
     for (const { key, label } of STAT_ORDER) {
-      rows.push({ troop, key, label, val: totalBuffs[troop]?.[key] || 0 });
+      const additive = totalBuffs[troop]?.[key] || 0;
+      const val = squadMultiplier > 0
+        ? ((1 + additive / 100) * factor - 1) * 100
+        : additive;
+      rows.push({ troop, key, label, val });
     }
   }
 
   return (
     <div>
-      <Lbl>Stat Bonuses ({scenario})</Lbl>
+      <Lbl>Stat Bonuses ({scenario}{squadMultiplier > 0 ? ` — +${squadMultiplier}% squad applied` : ""})</Lbl>
       <div style={{
         background: C.s1, border: `1px solid ${C.brd}`,
         borderRadius: 8, overflow: "hidden", marginBottom: 14,

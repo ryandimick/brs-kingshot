@@ -17,11 +17,12 @@ const lineupsEqual = (a, b) =>
 
 export function BattleReportTab({
   cs, update,
-  attackBuffs, attackSkillMod, attackOptimalLineup,
-  garrisonBuffs, garrisonSkillMod, garrisonOptimalLineup,
+  attackBuffs, attackOptimalLineup,
+  garrisonBuffs, garrisonOptimalLineup,
   derivedLoading, derivedError,
 }) {
   const [mode, setMode] = useState("attack");
+  const [squadBuffPct, setSquadBuffPct] = useState(0);
 
   // Auto modes: keep cs.{attackRally|garrisonLead}.selectedHeroes in sync with
   // the server-computed optimal so the returned buffs reflect the optimal lineup.
@@ -44,6 +45,7 @@ export function BattleReportTab({
   return (
     <div>
       <ModeSelector mode={mode} setMode={setMode} />
+      <BuffsSelector value={squadBuffPct} onChange={setSquadBuffPct} />
 
       {mode === "attack" && (
         <AutoReport
@@ -51,7 +53,7 @@ export function BattleReportTab({
           lineup={cs.attackRally?.selectedHeroes || ["", "", ""]}
           optimal={attackOptimalLineup}
           buffs={attackBuffs}
-          skillMod={attackSkillMod}
+          squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
         />
@@ -63,7 +65,7 @@ export function BattleReportTab({
           lineup={cs.garrisonLead?.selectedHeroes || ["", "", ""]}
           optimal={garrisonOptimalLineup}
           buffs={garrisonBuffs}
-          skillMod={garrisonSkillMod}
+          squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
         />
@@ -74,9 +76,8 @@ export function BattleReportTab({
           cs={cs}
           update={update}
           attackBuffs={attackBuffs}
-          attackSkillMod={attackSkillMod}
           garrisonBuffs={garrisonBuffs}
-          garrisonSkillMod={garrisonSkillMod}
+          squadMultiplier={squadBuffPct}
           loading={derivedLoading}
           error={derivedError}
         />
@@ -87,7 +88,7 @@ export function BattleReportTab({
 
 function ModeSelector({ mode, setMode }) {
   return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
       {MODES.map(o => (
         <button key={o.id} onClick={() => setMode(o.id)} style={{
           fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, padding: "7px 14px",
@@ -103,7 +104,42 @@ function ModeSelector({ mode, setMode }) {
   );
 }
 
-function AutoReport({ scenario, lineup, optimal, buffs, skillMod, loading, error }) {
+const BUFF_OPTIONS = [
+  { value: 0,  label: "None" },
+  { value: 10, label: "+10%" },
+  { value: 20, label: "+20%" },
+];
+
+function BuffsSelector({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+      <span style={{
+        fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: 700,
+        color: C.txD, letterSpacing: "1px",
+      }}>
+        ADD BUFFS
+      </span>
+      {BUFF_OPTIONS.map(opt => (
+        <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+          fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, padding: "5px 12px",
+          borderRadius: 4, border: `1px solid ${value === opt.value ? C.gold : C.brd}`,
+          background: value === opt.value ? C.gold + "22" : C.s1,
+          color: value === opt.value ? C.gold : C.txD,
+          cursor: "pointer",
+        }}>
+          {opt.label}
+        </button>
+      ))}
+      {value > 0 && (
+        <span style={{ fontSize: 11, color: C.txD }}>
+          Multiplicative on top of additive bonuses (ATK / DEF / Leth / HP, all troops).
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AutoReport({ scenario, lineup, optimal, buffs, squadMultiplier, loading, error }) {
   const scenarioLabel = scenario === "attack" ? "Attack Rally" : "Garrison";
   const ready = buffs && lineupsEqual(lineup, optimal || []);
 
@@ -112,12 +148,12 @@ function AutoReport({ scenario, lineup, optimal, buffs, skillMod, loading, error
       <LineupSummary lineup={lineup} title="Auto-selected lineup" />
       {!ready
         ? <DerivedFallback loading={loading} error={error} />
-        : <BuffPanel totalBuffs={buffs} skillMod={skillMod} scenario={scenarioLabel} />}
+        : <BuffPanel totalBuffs={buffs} scenario={scenarioLabel} squadMultiplier={squadMultiplier} />}
     </div>
   );
 }
 
-function CustomReport({ cs, update, attackBuffs, attackSkillMod, garrisonBuffs, garrisonSkillMod, loading, error }) {
+function CustomReport({ cs, update, attackBuffs, garrisonBuffs, squadMultiplier, loading, error }) {
   const roster = cs.heroRoster || {};
   const rosterNames = Object.keys(roster);
 
@@ -148,7 +184,6 @@ function CustomReport({ cs, update, attackBuffs, attackSkillMod, garrisonBuffs, 
   const matchesSubmitted = submitted && lineupsEqual(liveLineup, submittedLineup);
 
   const buffs = submitted?.scenario === "attack" ? attackBuffs : garrisonBuffs;
-  const skillMod = submitted?.scenario === "attack" ? attackSkillMod : garrisonSkillMod;
   const scenarioLabel = submitted?.scenario === "attack" ? "Attack Rally" : "Garrison";
 
   return (
@@ -221,7 +256,7 @@ function CustomReport({ cs, update, attackBuffs, attackSkillMod, garrisonBuffs, 
 
       {submitted && (
         matchesSubmitted && buffs
-          ? <BuffPanel totalBuffs={buffs} skillMod={skillMod} scenario={`Custom (${scenarioLabel})`} />
+          ? <BuffPanel totalBuffs={buffs} scenario={`Custom (${scenarioLabel})`} squadMultiplier={squadMultiplier} />
           : <DerivedFallback loading={loading} error={error} />
       )}
     </div>

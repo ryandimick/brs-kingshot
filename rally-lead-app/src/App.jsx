@@ -122,10 +122,8 @@ function AuthenticatedApp({ profile, onCreateNewProfile }) {
             cs={cs}
             update={update}
             attackBuffs={derived.attackBuffs}
-            attackSkillMod={derived.attackSkillMod}
             attackOptimalLineup={derived.attackOptimalLineup}
             garrisonBuffs={derived.garrisonBuffs}
-            garrisonSkillMod={derived.garrisonSkillMod}
             garrisonOptimalLineup={derived.garrisonOptimalLineup}
             derivedLoading={derived.loading}
             derivedError={derived.error}
