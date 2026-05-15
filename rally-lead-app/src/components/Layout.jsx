@@ -5,7 +5,6 @@ import { ProfileSwitcher } from "./ProfileSwitcher";
 const TABS = [
   { id: "sheet", l: "Character Sheet" },
   { id: "invest", l: "Investment" },
-  { id: "counter", l: "Counter Search" },
 ];
 
 export function Header({
