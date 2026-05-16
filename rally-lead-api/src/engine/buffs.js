@@ -116,3 +116,20 @@ export function computeGarrisonBuffBreakdown(cs) {
     []
   );
 }
+
+// Flatten a { additive, widgetSkillPct } breakdown into per-troop displayed
+// pct values: displayed[t][s] = additive[t][s] × (1 + widgetSkillPct[s]/100).
+// Equivalent to the result of computeBuffsForLineup, but operates on a
+// breakdown you already have in hand (avoids recomputing).
+export function flattenBreakdown(breakdown) {
+  const result = {};
+  for (const t of TROOP_TYPES) {
+    result[t] = { ATK: 0, Leth: 0, HP: 0, DEF: 0 };
+    for (const s of STAT_NAMES) {
+      const a = breakdown.additive[t]?.[s] || 0;
+      const ws = breakdown.widgetSkillPct[s] || 0;
+      result[t][s] = a * (1 + ws / 100);
+    }
+  }
+  return result;
+}

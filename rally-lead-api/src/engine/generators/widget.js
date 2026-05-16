@@ -1,15 +1,18 @@
 import { HERO_DB } from "../../data/hero-database.js";
-import { widgetExpeditionStats, widgetSkillValue } from "../../data/hero-tables.js";
-import { offProduct, defProduct, marginal, baseStatsFor } from "../combat.js";
-import { weightsFor } from "../scoring.js";
+import { widgetExpeditionStats, widgetSkillValue, statFromDesc } from "../../data/hero-tables.js";
+import { computeGain } from "../scoring.js";
 
-// Widget gain is lineup-scoped (only counts toward the lineup the hero is
-// actually deployed in), so it bypasses the generic computeGain helper.
-export function generateWidget(simState, _remaining, cs, attackBuffs, garrisonBuffs) {
+// Widget upgrade contributes in two layers:
+//   1. Expedition stats (Leth, HP) — additive, scoped to the hero's troop type.
+//   2. Widget exclusive skill value — multiplicative on the buff %, squad-wide,
+//      only active in scenarios matching widget.skill.mode ("rally" → attack,
+//      "defender" → garrison).
+// Scenarios where the hero is not actually deployed are excluded so the gain
+// reflects the lineup the user has configured.
+export function generateWidget(simState, _remaining, cs, attackBreakdown, garrisonBreakdown) {
   const out = [];
   const attackHeroes   = cs.attackRally?.selectedHeroes   || [];
   const garrisonHeroes = cs.garrisonLead?.selectedHeroes || [];
-  const bases = baseStatsFor(cs);
 
   for (const [name, rosterEntry] of Object.entries(simState.heroRoster)) {
     const dbEntry = HERO_DB.find(h => h.name === name);
@@ -24,40 +27,32 @@ export function generateWidget(simState, _remaining, cs, attackBuffs, garrisonBu
     if (!inAttack && !inGarrison) continue;
 
     const heroTroop = dbEntry.type;
-    const curStats = widgetExpeditionStats(dbEntry, currentLv);
-    const nxtStats = widgetExpeditionStats(dbEntry, nextLv);
-    let lethGain = nxtStats.Leth - curStats.Leth;
-    let hpGain   = nxtStats.HP   - curStats.HP;
-    const curSkill = widgetSkillValue(dbEntry, currentLv);
-    const nxtSkill = widgetSkillValue(dbEntry, nextLv);
-    const skillDelta = nxtSkill - curSkill;
-    if (skillDelta > 0 && dbEntry.widget?.skill?.mode === "rally"    && inAttack)   lethGain += skillDelta;
-    if (skillDelta > 0 && dbEntry.widget?.skill?.mode === "defender" && inGarrison) hpGain   += skillDelta;
 
+    // Additive expedition-stat deltas (hero's troop only).
+    const curExp = widgetExpeditionStats(dbEntry, currentLv);
+    const nxtExp = widgetExpeditionStats(dbEntry, nextLv);
     const statGains = {};
-    if (lethGain > 0) statGains.Leth = lethGain;
-    if (hpGain   > 0) statGains.HP   = hpGain;
-    if (Object.keys(statGains).length === 0) continue;
+    const lethExpGain = nxtExp.Leth - curExp.Leth;
+    const hpExpGain   = nxtExp.HP   - curExp.HP;
+    if (lethExpGain > 0) statGains.Leth = lethExpGain;
+    if (hpExpGain   > 0) statGains.HP   = hpExpGain;
 
-    let gain = 0;
-    if (inAttack) {
-      const aW = (cs.attackRally?.offenseWeight ?? 75) / 100;
-      const offW = weightsFor(cs, attackBuffs, offProduct);
-      const defW = weightsFor(cs, attackBuffs, defProduct);
-      for (const [s, g] of Object.entries(statGains)) {
-        if (s === "Leth") gain += marginal(bases[heroTroop], attackBuffs[heroTroop], s, g, offProduct).pct * offW[heroTroop] * aW;
-        if (s === "HP")   gain += marginal(bases[heroTroop], attackBuffs[heroTroop], s, g, defProduct).pct * defW[heroTroop] * (1 - aW);
-      }
-    }
-    if (inGarrison) {
-      const gW = (cs.garrisonLead?.offenseWeight ?? 25) / 100;
-      const offW = weightsFor(cs, garrisonBuffs, offProduct);
-      const defW = weightsFor(cs, garrisonBuffs, defProduct);
-      for (const [s, g] of Object.entries(statGains)) {
-        if (s === "Leth") gain += marginal(bases[heroTroop], garrisonBuffs[heroTroop], s, g, offProduct).pct * offW[heroTroop] * gW;
-        if (s === "HP")   gain += marginal(bases[heroTroop], garrisonBuffs[heroTroop], s, g, defProduct).pct * defW[heroTroop] * (1 - gW);
-      }
-    }
+    // Multiplicative widget exclusive skill delta (squad-wide, mode-gated).
+    const skillDelta = widgetSkillValue(dbEntry, nextLv) - widgetSkillValue(dbEntry, currentLv);
+    const mode = dbEntry.widget?.skill?.mode || "";
+    const skillStat = statFromDesc(dbEntry.widget?.skill?.desc) || (mode === "rally" ? "Leth" : "HP");
+    const widgetSkillAtk = (skillDelta > 0 && mode === "rally")    ? { [skillStat]: skillDelta } : {};
+    const widgetSkillGar = (skillDelta > 0 && mode === "defender") ? { [skillStat]: skillDelta } : {};
+
+    if (Object.keys(statGains).length === 0
+        && Object.keys(widgetSkillAtk).length === 0
+        && Object.keys(widgetSkillGar).length === 0) continue;
+
+    const scenarios = inAttack && inGarrison ? undefined : inAttack ? "attack-only" : "garrison-only";
+
+    const gain = computeGain(statGains, heroTroop, cs, attackBreakdown, garrisonBreakdown, {
+      scenarios, widgetSkillAtk, widgetSkillGar,
+    });
 
     out.push({
       id: `widget/${name}/${nextLv}`,

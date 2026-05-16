@@ -1,4 +1,4 @@
-import { computeBuffsForLineup } from "./buffs.js";
+import { computeBuffBreakdownForLineup } from "./buffs.js";
 import { affordable, efficiency, cloneSimState } from "./scoring.js";
 import { generateGovGear } from "./generators/govgear.js";
 import { generateCharm } from "./generators/charm.js";
@@ -62,14 +62,14 @@ export function plan(cs, budget, options = {}) {
 
   for (let i = 0; i < maxIterations; i++) {
     const simCs = { ...cs, ...simState };
-    const attackBuffs   = computeBuffsForLineup(simCs, attackHeroes,   "rally");
-    const garrisonBuffs = computeBuffsForLineup(simCs, garrisonHeroes, "defender");
+    const attackBreakdown   = computeBuffBreakdownForLineup(simCs, attackHeroes,   "rally");
+    const garrisonBreakdown = computeBuffBreakdownForLineup(simCs, garrisonHeroes, "defender");
 
     const candidates = [];
     for (const cat of categories) {
       const gen = GENERATORS[cat];
       if (!gen) continue;
-      candidates.push(...gen(simState, remaining, cs, attackBuffs, garrisonBuffs));
+      candidates.push(...gen(simState, remaining, cs, attackBreakdown, garrisonBreakdown));
     }
 
     const viable = candidates.filter(c => c.gain > 0 && affordable(c.cost, remaining));

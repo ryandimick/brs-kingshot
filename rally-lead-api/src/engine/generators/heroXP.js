@@ -4,7 +4,7 @@ import { computeGain } from "../scoring.js";
 
 const PIECE_NAMES = { helm: "Helm", boots: "Boots", chest: "Chest", gloves: "Gloves" };
 
-export function generateHeroXP(simState, _remaining, cs, attackBuffs, garrisonBuffs) {
+export function generateHeroXP(simState, _remaining, cs, attackBreakdown, garrisonBreakdown) {
   const out = [];
   for (const troop of ["Infantry", "Cavalry", "Archer"]) {
     const gearSet = simState.heroGear[troop] || {};
@@ -32,7 +32,7 @@ export function generateHeroXP(simState, _remaining, cs, attackBuffs, garrisonBu
       const current  = heroGearPieceStat(fromLv, piece.mast);
       const upgraded = heroGearPieceStat(toLv,   piece.mast);
       const delta    = upgraded - current;
-      const gain = computeGain({ [stat]: delta }, troop, cs, attackBuffs, garrisonBuffs);
+      const gain = computeGain({ [stat]: delta }, troop, cs, attackBreakdown, garrisonBreakdown);
 
       const gateNote = mithrilCost || mythicCost
         ? ` [gate: ${mithrilCost ? `${mithrilCost} mithril` : ""}${mithrilCost && mythicCost ? " + " : ""}${mythicCost ? `${mythicCost} mythic` : ""}]`

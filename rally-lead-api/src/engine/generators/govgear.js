@@ -1,7 +1,7 @@
 import { GOV_GEAR_SLOTS, GOV_GEAR_TIERS, GOV_GEAR_COSTS, getSetBonus } from "../../data/gear-tables.js";
 import { computeGain } from "../scoring.js";
 
-export function generateGovGear(simState, _remaining, cs, attackBuffs, garrisonBuffs) {
+export function generateGovGear(simState, _remaining, cs, attackBreakdown, garrisonBreakdown) {
   const out = [];
   for (const slot of GOV_GEAR_SLOTS) {
     const fromIdx = simState.govGearSlots[slot.id] || 0;
@@ -14,14 +14,14 @@ export function generateGovGear(simState, _remaining, cs, attackBuffs, garrisonB
     if (c.artisan) cost.artisan = c.artisan;
 
     const delta = GOV_GEAR_TIERS[toIdx].total - GOV_GEAR_TIERS[fromIdx].total;
-    const baseGain = computeGain({ ATK: delta, DEF: delta }, slot.troop, cs, attackBuffs, garrisonBuffs);
+    const baseGain = computeGain({ ATK: delta, DEF: delta }, slot.troop, cs, attackBreakdown, garrisonBreakdown);
 
     const simSlots = { ...simState.govGearSlots, [slot.id]: toIdx };
     const oldSet = getSetBonus(simState.govGearSlots);
     const newSet = getSetBonus(simSlots);
     const setGain = computeGain(
       { ATK: newSet.atk3 - oldSet.atk3, DEF: newSet.def3 - oldSet.def3 },
-      null, cs, attackBuffs, garrisonBuffs
+      null, cs, attackBreakdown, garrisonBreakdown
     );
 
     out.push({

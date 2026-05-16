@@ -4,7 +4,11 @@ import { aggregateBaseStats, totalCount } from "../data/troop-base-stats.js";
 import { GOV_GEAR_SLOTS, GOV_GEAR_TIERS, CHARM_LEVELS, GOV_GEAR_COSTS, CHARM_COSTS, forgehammerCost, heroGearEPCost, getSetBonus } from "../data/gear-tables.js";
 import { heroGearPieceStat, GEAR_PIECE_STAT, HERO_GEAR_MASTERY_MAX, widgetExpeditionStats, widgetSkillValue, statFromDesc } from "../data/hero-tables.js";
 import { marginalCostUSD } from "../data/pack-economy.js";
-import { computeBuffsForLineup } from "./buffs.js";
+import {
+  computeBuffsForLineup,
+  computeBuffBreakdownForLineup,
+  flattenBreakdown,
+} from "./buffs.js";
 
 // Resolve count-weighted base stats for each troop type from cs.troops[*].composition.
 // Returns { Infantry: {ATK,Leth,HP,DEF}, Cavalry: {...}, Archer: {...} }.
@@ -262,54 +266,82 @@ function computeTroopWeights(cs, buffs, productFn) {
   return weights;
 }
 
-// Score an option against a single buff set using dynamic weights
-function _scoreVs(statGains, buffs, troopScope, cs) {
+// Per-stat effective DISPLAYED-pct gain for one troop. Additive bucket gains
+// (`statGains`, scoped to `troopScope`) are amplified by (1 + widgetSkillPct/100)
+// for the relevant scenario; squad-wide widget-skill multiplier deltas
+// scale the troop's existing additive bucket: additive[t][stat] × delta/100.
+function _effectiveStatGains(statGains, troopScope, widgetSkillDelta, breakdown, troop) {
+  const out = { ATK: 0, DEF: 0, Leth: 0, HP: 0 };
+  if (!troopScope || troopScope === troop) {
+    for (const [stat, gain] of Object.entries(statGains)) {
+      const wsFactor = 1 + (breakdown.widgetSkillPct[stat] || 0) / 100;
+      out[stat] = (out[stat] || 0) + gain * wsFactor;
+    }
+  }
+  for (const [stat, delta] of Object.entries(widgetSkillDelta || {})) {
+    const additivePct = breakdown.additive[troop]?.[stat] || 0;
+    out[stat] = (out[stat] || 0) + additivePct * (delta / 100);
+  }
+  return out;
+}
+
+// Score an option against a single scenario breakdown using dynamic weights.
+function _scoreVs(statGains, breakdown, troopScope, cs, widgetSkillDelta = {}) {
+  const buffs = flattenBreakdown(breakdown);
   const offWeights = computeTroopWeights(cs, buffs, offProduct);
   const defWeights = computeTroopWeights(cs, buffs, defProduct);
   const bases = baseStatsFor(cs);
   let tOff = 0, tDef = 0;
   for (const t of TROOP_TYPES) {
-    if (!troopScope || troopScope === t) {
-      for (const [stat, gain] of Object.entries(statGains)) {
-        if (stat === "ATK" || stat === "Leth") tOff += marginal(bases[t], buffs[t], stat, gain, offProduct).pct * offWeights[t];
-        if (stat === "HP" || stat === "DEF") tDef += marginal(bases[t], buffs[t], stat, gain, defProduct).pct * defWeights[t];
-      }
+    const gains = _effectiveStatGains(statGains, troopScope, widgetSkillDelta, breakdown, t);
+    for (const [stat, eGain] of Object.entries(gains)) {
+      if (eGain === 0) continue;
+      if (stat === "ATK" || stat === "Leth") tOff += marginal(bases[t], buffs[t], stat, eGain, offProduct).pct * offWeights[t];
+      if (stat === "HP" || stat === "DEF") tDef += marginal(bases[t], buffs[t], stat, eGain, defProduct).pct * defWeights[t];
     }
   }
   return { tOff, tDef };
 }
 
-// Score against both attack + garrison buffs, with per-scenario offense/defense weights
-function scoreOption(statGains, attackBuffs, garrisonBuffs, troopScope, cs, scenarios) {
+// Score an option against both attack + garrison breakdowns. widgetSkillAtk
+// and widgetSkillGar carry per-stat multiplier deltas (squad-wide) that only
+// fire in their matching scenario — widget-skill mode is rally vs defender.
+function scoreOption(statGains, attackBreakdown, garrisonBreakdown, troopScope, cs, scenarios, widgetSkillAtk = {}, widgetSkillGar = {}) {
   const atkWeight = cs.attackRally?.offenseWeight ?? 75;
   const garWeight = cs.garrisonLead?.offenseWeight ?? 25;
 
   let atkComb = 0, garComb = 0;
 
   if (scenarios !== "garrison-only") {
-    const a = _scoreVs(statGains, attackBuffs, troopScope, cs);
+    const a = _scoreVs(statGains, attackBreakdown, troopScope, cs, widgetSkillAtk);
     atkComb = a.tOff * (atkWeight / 100) + a.tDef * (1 - atkWeight / 100);
   }
   if (scenarios !== "attack-only") {
-    const g = _scoreVs(statGains, garrisonBuffs, troopScope, cs);
+    const g = _scoreVs(statGains, garrisonBreakdown, troopScope, cs, widgetSkillGar);
     garComb = g.tOff * (garWeight / 100) + g.tDef * (1 - garWeight / 100);
   }
 
   // Per-troop breakdown (combined across both scenarios)
   const bases = baseStatsFor(cs);
+  const attackBuffs = flattenBreakdown(attackBreakdown);
+  const garrisonBuffs = flattenBreakdown(garrisonBreakdown);
   const pt = {};
   for (const t of TROOP_TYPES) {
     let og = 0, dg = 0;
-    if (!troopScope || troopScope === t) {
-      for (const [stat, gain] of Object.entries(statGains)) {
-        if (stat === "ATK" || stat === "Leth") {
-          if (scenarios !== "garrison-only") og += marginal(bases[t], attackBuffs[t], stat, gain, offProduct).pct;
-          if (scenarios !== "attack-only") og += marginal(bases[t], garrisonBuffs[t], stat, gain, offProduct).pct;
-        }
-        if (stat === "HP" || stat === "DEF") {
-          if (scenarios !== "garrison-only") dg += marginal(bases[t], attackBuffs[t], stat, gain, defProduct).pct;
-          if (scenarios !== "attack-only") dg += marginal(bases[t], garrisonBuffs[t], stat, gain, defProduct).pct;
-        }
+    if (scenarios !== "garrison-only") {
+      const gains = _effectiveStatGains(statGains, troopScope, widgetSkillAtk, attackBreakdown, t);
+      for (const [stat, eGain] of Object.entries(gains)) {
+        if (eGain === 0) continue;
+        if (stat === "ATK" || stat === "Leth") og += marginal(bases[t], attackBuffs[t], stat, eGain, offProduct).pct;
+        if (stat === "HP" || stat === "DEF") dg += marginal(bases[t], attackBuffs[t], stat, eGain, defProduct).pct;
+      }
+    }
+    if (scenarios !== "attack-only") {
+      const gains = _effectiveStatGains(statGains, troopScope, widgetSkillGar, garrisonBreakdown, t);
+      for (const [stat, eGain] of Object.entries(gains)) {
+        if (eGain === 0) continue;
+        if (stat === "ATK" || stat === "Leth") og += marginal(bases[t], garrisonBuffs[t], stat, eGain, offProduct).pct;
+        if (stat === "HP" || stat === "DEF") dg += marginal(bases[t], garrisonBuffs[t], stat, eGain, defProduct).pct;
       }
     }
     pt[t] = { og, dg };
@@ -319,7 +351,7 @@ function scoreOption(statGains, attackBuffs, garrisonBuffs, troopScope, cs, scen
   return { atkComb, garComb, comb, pt };
 }
 
-export function computeInvestments(cs, attackBuffs, garrisonBuffs) {
+export function computeInvestments(cs, attackBreakdown, garrisonBreakdown) {
   const options = [];
   const currentSlots = cs.govGearSlots || {};
   const currentSetBonus = getSetBonus(currentSlots);
@@ -342,8 +374,8 @@ export function computeInvestments(cs, attackBuffs, garrisonBuffs) {
     const hasSetChange = setAtkDelta > 0 || setDefDelta > 0;
     const setNote = hasSetChange ? ` [SET +${setAtkDelta > 0 ? setAtkDelta + "% ATK" : ""}${setAtkDelta > 0 && setDefDelta > 0 ? " +" : ""}${setDefDelta > 0 ? setDefDelta + "% DEF" : ""}]` : "";
 
-    const pieceScore = scoreOption({ ATK: pieceDelta, DEF: pieceDelta }, attackBuffs, garrisonBuffs, slot.troop, cs);
-    const setScore = hasSetChange ? scoreOption({ ATK: setAtkDelta, DEF: setDefDelta }, attackBuffs, garrisonBuffs, null, cs) : { comb: 0, pt: {} };
+    const pieceScore = scoreOption({ ATK: pieceDelta, DEF: pieceDelta }, attackBreakdown, garrisonBreakdown, slot.troop, cs);
+    const setScore = hasSetChange ? scoreOption({ ATK: setAtkDelta, DEF: setDefDelta }, attackBreakdown, garrisonBreakdown, null, cs) : { comb: 0, pt: {} };
 
     const pt = {};
     for (const t of TROOP_TYPES) {
@@ -466,26 +498,29 @@ export function computeInvestments(cs, attackBuffs, garrisonBuffs) {
 
     const currentStats = widgetExpeditionStats(dbEntry, currentLv);
     const nextStats = widgetExpeditionStats(dbEntry, nextLv);
-    const lethGain = nextStats.Leth - currentStats.Leth;
-    const hpGain = nextStats.HP - currentStats.HP;
-    const currentSkillVal = widgetSkillValue(dbEntry, currentLv);
-    const nextSkillVal = widgetSkillValue(dbEntry, nextLv);
-    const skillDelta = nextSkillVal - currentSkillVal;
-    const widgetMode = dbEntry.widget?.skill?.mode || "";
+    const lethExpGain = nextStats.Leth - currentStats.Leth;
+    const hpExpGain   = nextStats.HP   - currentStats.HP;
+    const skillDelta  = widgetSkillValue(dbEntry, nextLv) - widgetSkillValue(dbEntry, currentLv);
+    const widgetMode  = dbEntry.widget?.skill?.mode || "";
+    const skillStat   = statFromDesc(dbEntry.widget?.skill?.desc) || (widgetMode === "rally" ? "Leth" : "HP");
 
-    // Build stat gains: expedition stats always, skill only in matching scenario
+    // Additive expedition-stat deltas (hero's troop only).
     const statGains = {};
-    let totalLeth = lethGain, totalHP = hpGain;
-    if (skillDelta > 0 && widgetMode === "rally" && inAttack) totalLeth += skillDelta;
-    if (skillDelta > 0 && widgetMode === "defender" && inGarrison) totalHP += skillDelta;
-    if (totalLeth > 0) statGains.Leth = totalLeth;
-    if (totalHP > 0) statGains.HP = totalHP;
-    if (Object.keys(statGains).length === 0) continue;
+    if (lethExpGain > 0) statGains.Leth = lethExpGain;
+    if (hpExpGain   > 0) statGains.HP   = hpExpGain;
+
+    // Multiplicative widget-skill deltas (squad-wide, mode-gated).
+    const widgetSkillAtk = (skillDelta > 0 && widgetMode === "rally")    ? { [skillStat]: skillDelta } : {};
+    const widgetSkillGar = (skillDelta > 0 && widgetMode === "defender") ? { [skillStat]: skillDelta } : {};
+
+    if (Object.keys(statGains).length === 0
+        && Object.keys(widgetSkillAtk).length === 0
+        && Object.keys(widgetSkillGar).length === 0) continue;
 
     const fragmentCost = nextLv * 5;
     const scenarios = inAttack && inGarrison ? undefined : inAttack ? "attack-only" : "garrison-only";
     const scenarioLabel = inAttack && inGarrison ? "ATK+GAR" : inAttack ? "ATK" : "GAR";
-    const skillNote = skillDelta > 0 ? ` +${skillDelta}% ${widgetMode}` : "";
+    const skillNote = skillDelta > 0 ? ` +${skillDelta}% ${widgetMode} ${skillStat}` : "";
 
     options.push({
       id: `widget_${name}`,
@@ -494,6 +529,8 @@ export function computeInvestments(cs, attackBuffs, garrisonBuffs) {
       icon: "\u2B50",
       statGains,
       troopScope: heroTroop,
+      widgetSkillAtk,
+      widgetSkillGar,
       costLabel: `${fragmentCost} Widgets`,
       costValue: fragmentCost,
       costType: "widget",
@@ -505,7 +542,16 @@ export function computeInvestments(cs, attackBuffs, garrisonBuffs) {
   // Score and rank
   const results = options.map(opt => {
     if (opt._preScored) return opt;
-    const score = scoreOption(opt.statGains, attackBuffs, garrisonBuffs, opt.troopScope || null, cs, opt.scenarios);
+    const score = scoreOption(
+      opt.statGains,
+      attackBreakdown,
+      garrisonBreakdown,
+      opt.troopScope || null,
+      cs,
+      opt.scenarios,
+      opt.widgetSkillAtk || {},
+      opt.widgetSkillGar || {},
+    );
     const efficiency = opt.costValue > 0 ? score.comb / opt.costValue : 0;
     return { ...opt, ...score, efficiency };
   });

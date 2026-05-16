@@ -4,7 +4,7 @@ import { computeGain } from "../scoring.js";
 
 const PIECE_NAMES = { helm: "Helm", boots: "Boots", chest: "Chest", gloves: "Gloves" };
 
-export function generateForgehammer(simState, _remaining, cs, attackBuffs, garrisonBuffs) {
+export function generateForgehammer(simState, _remaining, cs, attackBreakdown, garrisonBreakdown) {
   const out = [];
   for (const troop of ["Infantry", "Cavalry", "Archer"]) {
     const gearSet = simState.heroGear[troop] || {};
@@ -19,7 +19,7 @@ export function generateForgehammer(simState, _remaining, cs, attackBuffs, garri
       const current  = heroGearPieceStat(piece.enh, piece.mast);
       const upgraded = heroGearPieceStat(piece.enh, piece.mast + 1);
       const delta    = upgraded - current;
-      const gain = computeGain({ [stat]: delta }, troop, cs, attackBuffs, garrisonBuffs);
+      const gain = computeGain({ [stat]: delta }, troop, cs, attackBreakdown, garrisonBreakdown);
 
       out.push({
         id: `forgehammer/${troop}/${pieceId}/${piece.mast + 1}`,

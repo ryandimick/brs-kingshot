@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireSession } from "../middleware/auth.js";
 import { plan } from "../engine/planner.js";
-import { computeAttackBuffs, computeGarrisonBuffs } from "../engine/buffs.js";
+import { computeAttackBuffBreakdown, computeGarrisonBuffBreakdown } from "../engine/buffs.js";
 import { computeInvestments } from "../engine/combat.js";
 import { resolvePackTier } from "../engine/pack-resolver.js";
 import { mergeBundles } from "../engine/scoring.js";
@@ -44,9 +44,9 @@ optimizeRouter.post("/marginal", (req, res) => {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cs = parsed.data.characterSheet as any;
-  const attackBuffs = computeAttackBuffs(cs);
-  const garrisonBuffs = computeGarrisonBuffs(cs);
-  const investments = computeInvestments(cs, attackBuffs, garrisonBuffs);
+  const attackBreakdown = computeAttackBuffBreakdown(cs);
+  const garrisonBreakdown = computeGarrisonBuffBreakdown(cs);
+  const investments = computeInvestments(cs, attackBreakdown, garrisonBreakdown);
   res.json({ investments });
 });
 

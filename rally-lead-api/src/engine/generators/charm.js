@@ -2,7 +2,7 @@ import { GOV_GEAR_SLOTS, CHARM_LEVELS, CHARM_COSTS } from "../../data/gear-table
 import { TROOP_TYPES } from "../../data/constants.js";
 import { computeGain } from "../scoring.js";
 
-export function generateCharm(simState, _remaining, cs, attackBuffs, garrisonBuffs) {
+export function generateCharm(simState, _remaining, cs, attackBreakdown, garrisonBreakdown) {
   const out = [];
   for (const slot of GOV_GEAR_SLOTS) {
     for (let ci = 0; ci < 3; ci++) {
@@ -13,7 +13,7 @@ export function generateCharm(simState, _remaining, cs, attackBuffs, garrisonBuf
       if (!c) continue;
 
       const delta = CHARM_LEVELS[nextLv].total - CHARM_LEVELS[currentLv].total;
-      const gain = computeGain({ Leth: delta, HP: delta }, slot.troop, cs, attackBuffs, garrisonBuffs);
+      const gain = computeGain({ Leth: delta, HP: delta }, slot.troop, cs, attackBreakdown, garrisonBreakdown);
 
       out.push({
         id: `charm/${slot.id}/${ci}/${nextLv}`,
